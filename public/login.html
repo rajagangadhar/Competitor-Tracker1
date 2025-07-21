@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Competitor Tracker - Login/Register</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="shortcut icon" href="./img/logo.jpeg" type="image/jpeg">
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDPFYs1WCJ2lgQOAiHm0bFbqlol5p3z75o",
+      authDomain: "hackathon-bb760.firebaseapp.com",
+      projectId: "hackathon-bb760",
+      storageBucket: "hackathon-bb760.appspot.com",
+      messagingSenderId: "761847647380",
+      appId: "1:761847647380:web:1253f7ad05bd7489ceb881"
+    };
+    firebase.initializeApp(firebaseConfig);
+  </script>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --error: #ef4444;
+      --success: #10b981;
+    }
+    
+    body {
+      height: 100vh;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(-45deg, #0f172a, #1e293b, #334155, #475569);
+      background-size: 400% 400%;
+      animation: gradient 15s ease infinite;
+      color: #f8fafc;
+      overflow-x: hidden; /* Prevent horizontal scroll */
+    }
+    
+    @keyframes gradient {
+      0% {background-position: 0% 50%;}
+      50% {background-position: 100% 50%;}
+      100% {background-position: 0% 50%;}
+    }
+    
+    .form-container {
+      position: relative;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(12px);
+      border-radius: 1.5rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 
+                  0 0 0 1px rgba(255, 255, 255, 0.05);
+      overflow: hidden;
+      width: 100%;
+      max-width: 28rem;
+      padding: 2.5rem;
+      transform: translateY(0);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 10;
+    }
+    
+    .form-container::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+      animation: rotate 15s linear infinite;
+      z-index: -1;
+    }
+    
+    .form-container:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.3), 
+                  0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+    
+    @keyframes rotate {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .input-field {
+      transition: all 0.3s ease;
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .input-field:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-2px);
+    }
+    
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -60%;
+      width: 200%;
+      height: 200%;
+      background: rgba(255, 255, 255, 0.1);
+      transform: rotate(30deg);
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover::after {
+      left: 100%;
+    }
+    
+    .btn-google {
+      background: #db4437;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-google:hover {
+      background: #c53929;
+      transform: translateY(-2px);
+    }
+    
+    .toggle-link {
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    
+    .toggle-link::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 0;
+      height: 1px;
+      background: currentColor;
+      transition: width 0.3s ease;
+    }
+    
+    .toggle-link:hover::after {
+      width: 100%;
+    }
+    
+    .floating {
+      animation: floating 6s ease-in-out infinite;
+    }
+    
+    @keyframes floating {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-15px); }
+      100% { transform: translateY(0px); }
+    }
+    
+    .pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .message {
+      transition: all 0.4s ease;
+      opacity: 0;
+      height: 0;
+      overflow: hidden;
+    }
+    
+    .message.show {
+      opacity: 1;
+      height: auto;
+      margin-top: 1.5rem;
+    }
+    
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      pointer-events: none;
+      z-index: 1;
+    }
+    @media (max-width: 640px) {
+  .form-container {
+    padding: 1.5rem; /* reduce padding */
+    border-radius: 1rem; /* tighter border radius */
+  }
+
+  .form-container h1 {
+    font-size: 1.5rem; /* smaller heading */
+  }
+
+  .input-field {
+    font-size: 0.875rem; /* reduce input font size */
+    padding: 0.75rem 1rem; /* tighter input padding */
+  }
+
+  .btn-primary,
+  .btn-google {
+    font-size: 0.875rem; /* smaller button text */
+    padding: 0.75rem 1rem; /* tighter button padding */
+  }
+
+  .toggle-link {
+    font-size: 0.875rem; /* smaller toggle text */
+  }
+}
+
+@media (max-width: 400px) {
+  .form-container {
+    max-width: 90%;
+  }
+}
+body {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 10+ */
+}
+
+body::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+
+.forgot-password {
+  display: block;
+  text-align: right;
+  margin-top: -0.75rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+  color: #93c5fd;
+  transition: color 0.2s;
+}
+
+.forgot-password:hover {
+  color: #60a5fa;
+  text-decoration: underline;
+}
+
+  </style>
+</head>
+
+<body>
+  <!-- Floating particles background -->
+  <div id="particles"></div>
+  
+  <!-- Main form container -->
+  <div class="form-container" id="form-container">
+    <h1 class="text-3xl font-bold text-center mb-8" id="form-title">Log in to Competitor Tracker</h1>
+
+    <div id="name-field" class="hidden mb-6 transition-all duration-500">
+      <input id="name" type="text" placeholder="Your Name" class="input-field w-full rounded-lg px-4 py-3 focus:outline-none" />
+    </div>
+
+    <input id="email" type="email" placeholder="Email Address" class="input-field w-full rounded-lg px-4 py-3 mb-6 focus:outline-none" />
+
+    <div class="relative mb-2">
+      <input id="password" type="password" placeholder="Password" class="input-field w-full rounded-lg px-4 py-3 pr-10 focus:outline-none" />
+      <span class="absolute right-3 top-3 text-gray-400 cursor-pointer hover:text-gray-300 transition" onclick="togglePassword('password', 'togglePasswordIcon')">
+        <i id="togglePasswordIcon" class="fa-solid fa-eye"></i>
+      </span>
+    </div>
+
+    <a href="#" onclick="showForgotPassword()" class="forgot-password" id="forgot-password-link">Forgot password?</a>
+
+    <button onclick="handleSubmit()" class="btn-primary w-full text-white py-3 rounded-lg mb-4 font-semibold tracking-wide flex items-center justify-center gap-2" id="main-btn">
+      <i class="fas fa-sign-in-alt"></i>
+      <span>Login</span>
+    </button>
+
+    <div class="relative flex items-center my-6">
+      <div class="flex-grow border-t border-gray-700"></div>
+      <span class="flex-shrink mx-4 text-gray-400 text-sm">OR</span>
+      <div class="flex-grow border-t border-gray-700"></div>
+    </div>
+
+    <button onclick="loginWithGoogle()" class="btn-google w-full text-white py-3 rounded-lg mb-6 font-semibold tracking-wide flex items-center justify-center gap-2">
+      <i class="fab fa-google"></i>
+      <span>Continue with Google</span>
+    </button>
+
+    <p class="text-center text-gray-400 text-sm">
+      <span id="toggle-text">Don't have an account?</span>
+      <a href="#" onclick="toggleForm()" class="toggle-link text-blue-400 font-semibold ml-1" id="toggle-link">Register here</a>
+    </p>
+
+    <div id="message" class="message text-center rounded-lg py-3 px-4"></div>
+  </div>
+
+  <!-- Forgot password modal -->
+  <div id="forgot-password-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 relative">
+      <button onclick="hideForgotPassword()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+        <i class="fas fa-times"></i>
+      </button>
+      <h2 class="text-2xl font-bold mb-4">Reset Password</h2>
+      <p class="mb-4 text-gray-300">Enter your email address and we'll send you a link to reset your password.</p>
+      <input id="reset-email" type="email" placeholder="Your email address" class="input-field w-full rounded-lg px-4 py-3 mb-4 focus:outline-none">
+      <button onclick="sendPasswordReset()" class="btn-primary w-full text-white py-3 rounded-lg font-semibold tracking-wide flex items-center justify-center gap-2">
+        <i class="fas fa-paper-plane"></i>
+        <span>Send Reset Link</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Floating decoration elements -->
+  <div class="absolute top-20 left-20 w-16 h-16 rounded-full bg-indigo-500/20 blur-xl opacity-70 floating"></div>
+  <div class="absolute bottom-20 right-20 w-24 h-24 rounded-full bg-blue-500/20 blur-xl opacity-70 floating" style="animation-delay: 2s;"></div>
+  <div class="absolute top-1/3 right-1/4 w-12 h-12 rounded-full bg-purple-500/20 blur-xl opacity-70 floating" style="animation-delay: 4s;"></div>
+
+  <script>
+    let isRegistering = false;
+    
+    // Create floating particles
+    function createParticles() {
+      const container = document.getElementById('particles');
+      const particleCount = 30;
+      
+      for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.classList.add('particle');
+        
+        // Random properties
+        const size = Math.random() * 5 + 2;
+        const posX = Math.random() * 100;
+        const posY = Math.random() * 100;
+        const delay = Math.random() * 10;
+        const duration = 20 + Math.random() * 20;
+        const opacity = 0.2 + Math.random() * 0.3;
+        
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        particle.style.left = `${posX}vw`;
+        particle.style.top = `${posY}vh`;
+        particle.style.opacity = opacity;
+        particle.style.animation = `floating ${duration}s ease-in-out ${delay}s infinite`;
+        
+        container.appendChild(particle);
+      }
+    }
+    
+    // Initialize particles on load
+    window.addEventListener('load', createParticles);
+
+    function togglePassword(fieldId, iconId) {
+      const field = document.getElementById(fieldId);
+      const icon = document.getElementById(iconId);
+      field.type = field.type === "password" ? "text" : "password";
+      icon.classList.toggle("fa-eye");
+      icon.classList.toggle("fa-eye-slash");
+    }
+
+    function toggleForm() {
+      isRegistering = !isRegistering;
+      document.getElementById("name-field").classList.toggle("hidden", !isRegistering);
+      document.getElementById("form-title").textContent = isRegistering ? "Create Your Account" : "Welcome Back";
+      document.getElementById("main-btn").innerHTML = isRegistering 
+        ? '<i class="fas fa-user-plus"></i><span>Register</span>' 
+        : '<i class="fas fa-sign-in-alt"></i><span>Login</span>';
+      document.getElementById("toggle-text").textContent = isRegistering ? "Already have an account?" : "Don't have an account?";
+      document.getElementById("toggle-link").textContent = isRegistering ? "Log in here" : "Register here";
+      document.getElementById("forgot-password-link").classList.toggle("hidden", isRegistering);
+      showMessage('', ''); // Clear message
+    }
+
+    function showForgotPassword() {
+      document.getElementById('forgot-password-modal').classList.remove('hidden');
+      document.getElementById('reset-email').value = document.getElementById('email').value;
+    }
+
+    function hideForgotPassword() {
+      document.getElementById('forgot-password-modal').classList.add('hidden');
+    }
+
+    function sendPasswordReset() {
+      const email = document.getElementById('reset-email').value.trim();
+      const btn = document.querySelector('#forgot-password-modal button');
+      
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showMessage('Please enter a valid email address', 'error');
+        return;
+      }
+      
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Sending...</span>';
+      
+      firebase.auth().sendPasswordResetEmail(email)
+        .then(() => {
+          showMessage('Password reset email sent. Please check your inbox.', 'success');
+          btn.innerHTML = '<i class="fas fa-check"></i><span>Sent!</span>';
+          setTimeout(() => {
+            hideForgotPassword();
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i><span>Send Reset Link</span>';
+            btn.disabled = false;
+          }, 2000);
+        })
+        .catch(error => {
+          console.error(error);
+          const message = getErrorMessage(error.code);
+          showMessage(message, 'error');
+          btn.innerHTML = '<i class="fas fa-paper-plane"></i><span>Send Reset Link</span>';
+          btn.disabled = false;
+        });
+    }
+
+    function handleSubmit() {
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      
+      if (!email || !password || (isRegistering && !name)) {
+        showMessage('Please fill in all required fields', 'error');
+        return;
+      }
+      
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showMessage('Please enter a valid email address', 'error');
+        return;
+      }
+      
+      if (password.length < 6) {
+        showMessage('Password must be at least 6 characters', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('main-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Processing...</span>';
+
+      if (isRegistering) {
+        firebase.auth().createUserWithEmailAndPassword(email, password)
+          .then(userCredential => {
+            const user = userCredential.user;
+            return user.updateProfile({ displayName: name }).then(() => user.sendEmailVerification());
+          })
+          .then(() => {
+            showMessage('Registration successful! Please check your email to verify your account.', 'success');
+            btn.innerHTML = '<i class="fas fa-check"></i><span>Success!</span>';
+            setTimeout(() => {
+              btn.innerHTML = '<i class="fas fa-user-plus"></i><span>Register</span>';
+              btn.disabled = false;
+            }, 2000);
+          })
+          .catch(error => {
+            console.error(error);
+            const message = getErrorMessage(error.code);
+            showMessage(message, 'error');
+            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i><span>Register</span>';
+            btn.disabled = false;
+          });
+      } else {
+        firebase.auth().signInWithEmailAndPassword(email, password)
+          .then(userCredential => {
+            const user = userCredential.user;
+            if (!user.emailVerified) {
+              firebase.auth().signOut();
+              showMessage('Please verify your email before logging in. Check your inbox.', 'error');
+              btn.innerHTML = '<i class="fas fa-sign-in-alt"></i><span>Login</span>';
+              btn.disabled = false;
+              return;
+            }
+            showMessage('Login successful! Redirecting...', 'success');
+            btn.innerHTML = '<i class="fas fa-check"></i><span>Success!</span>';
+            setTimeout(() => window.location.href = '/', 1500);
+          })
+          .catch(error => {
+            console.error('Login error:', error.code, error.message);
+            const message = getErrorMessage(error.code);
+            showMessage(message, 'error');
+            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i><span>Login</span>';
+            btn.disabled = false;
+          });
+      }
+    }
+    
+    function loginWithGoogle() {
+      const btn = document.querySelector('.btn-google');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Connecting...</span>';
+      
+      const provider = new firebase.auth.GoogleAuthProvider();
+      firebase.auth().signInWithPopup(provider)
+        .then(() => {
+          showMessage('Login successful! Redirecting...', 'success');
+          btn.innerHTML = '<i class="fab fa-google"></i><span>Success!</span>';
+          setTimeout(() => window.location.href = '/', 1500);
+        })
+        .catch(error => {
+          console.error(error);
+          const message = getErrorMessage(error.code);
+          showMessage(message, 'error');
+          btn.innerHTML = '<i class="fab fa-google"></i><span>Continue with Google</span>';
+          btn.disabled = false;
+        });
+    }
+    
+    function getErrorMessage(code) {
+      const messages = {
+        'auth/email-already-in-use': 'This email is already registered.',
+        'auth/invalid-email': 'Please enter a valid email address.',
+        'auth/operation-not-allowed': 'This operation is not allowed.',
+        'auth/weak-password': 'Password should be at least 6 characters.',
+        'auth/user-disabled': 'This account has been disabled.',
+        'auth/user-not-found': 'No account found with this email. Please register first.',
+        'auth/wrong-password': 'Invalid credentials. Please check your email and password.',
+        'auth/too-many-requests': 'Too many attempts. Please try again later.',
+        'auth/invalid-login-credentials': 'Invalid credentials. Please check your email and password.',
+        'auth/invalid-credential': 'Invalid credentials. Please check your email and password.',
+      };
+      return messages[code] || 'An unexpected error occurred. Please try again.';
+    }
+
+    function showMessage(text, type) {
+      const msg = document.getElementById('message');
+      msg.textContent = text;
+      msg.className = 'message text-center rounded-lg py-3 px-4 show';
+      
+      switch(type) {
+        case 'error':
+          msg.classList.add('bg-red-900/50', 'text-red-300', 'border', 'border-red-700/50');
+          break;
+        case 'success':
+          msg.classList.add('bg-green-900/50', 'text-green-300', 'border', 'border-green-700/50');
+          break;
+        default:
+          msg.classList.add('bg-gray-800/50', 'text-gray-300');
+      }
+      
+      if (!text) {
+        msg.classList.remove('show');
+      }
+    }
+
+    // Prevent horizontal scroll
+    document.addEventListener('wheel', function(e) {
+      if (e.deltaX !== 0) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+  </script>
+</body>
+</html>

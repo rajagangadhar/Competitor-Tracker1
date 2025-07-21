@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Competitor Tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#000000" />
+
+<!-- Firebase (compat for existing code) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
+<style>
+:root {
+  --bg: #0d0d0d;
+  --bg-card: #1a1a1a;
+  --bg-card-alt: #222;
+  --bg-banner: linear-gradient(135deg,#000000 0%,#121212 100%);
+  --text: #f5f5f5;
+  --text-dim: #bbbbbb;
+  --accent: #00e0ff;
+  --accent-hover: #66f0ff;
+  --danger: #ff4d4d;
+  --danger-hover: #ff8080;
+  --radius: 8px;
+  --pad: 1rem;
+  --trans: 0.15s;
+  --font-body: system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  --font-mono: ui-monospace,Menlo,Consolas,monospace;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--font-body);line-height:1.4;}
+img{max-width:100%;display:block;}
+a{color:var(--accent);text-decoration:none;}
+a:hover{color:var(--accent-hover);text-decoration:underline;}
+button{cursor:pointer;font:inherit;}
+
+.visually-hidden{position:absolute!important;height:1px;width:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap;}
+
+header.site-header{
+  width:100%;
+  background:#000;
+  border-bottom:1px solid #333;
+  position:sticky;
+  top:0;
+  z-index:100;
+}
+header.site-header .nav-wrap{
+  max-width:1200px;
+  margin:0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0.5rem 1rem;
+}
+.nav-left{
+  display:flex;
+  align-items:center;
+  gap:1.25rem;
+}
+.nav-left .brand{
+  font-size:1.25rem;
+  font-weight:600;
+  letter-spacing:.5px;
+}
+.nav-left .brand::before{
+  content:"▶";
+  display:inline-block;
+  margin-right:.4em;
+  font-size:.85em;
+  color:var(--accent);
+}
+.nav-left nav a{
+  font-size:0.95rem;
+  padding:0.25rem 0;
+  position:relative;
+}
+.nav-left nav a.active::after{
+  content:"";
+  position:absolute;
+  left:0;
+  bottom:-0.4rem;
+  width:100%;
+  height:2px;
+  background:var(--accent);
+}
+
+.nav-right{
+  display:flex;
+  align-items:center;
+  gap:0.75rem;
+}
+.nav-right #userName{
+  font-size:0.9rem;
+  color:var(--text-dim);
+  max-width:120px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  overflow:hidden;
+}
+.nav-right #userAvatar{
+  width:32px;
+  height:32px;
+  border-radius:50%;
+  border:1px solid #333;
+  object-fit:cover;
+  background:#333;
+}
+.nav-right #logoutBtn{
+  padding:0.25rem 0.75rem;
+  background:transparent;
+  border:1px solid #333;
+  border-radius:var(--radius);
+  color:var(--text-dim);
+  transition:background var(--trans),color var(--trans),border var(--trans);
+}
+.nav-right #logoutBtn:hover{
+  background:#222;
+  border-color:var(--accent);
+  color:var(--accent-hover);
+}
+
+.banner{
+  background:var(--bg-banner);
+  padding:4rem 1rem 3rem;
+  text-align:center;
+  border-bottom:1px solid #333;
+}
+.banner h1{
+  margin:0 0 0.5rem;
+  font-size:clamp(2rem,5vw,3rem);
+  font-weight:700;
+}
+.banner p{
+  margin:0;
+  color:var(--text-dim);
+}
+
+.main-wrap{
+  max-width:1200px;
+  margin:0 auto;
+  padding:2rem 1rem 6rem;
+}
+
+.card{
+  background:var(--bg-card);
+  border:1px solid #333;
+  border-radius:var(--radius);
+  padding:var(--pad);
+  margin-bottom:2rem;
+  box-shadow:0 0 0 transparent;
+  transition:box-shadow var(--trans),transform var(--trans);
+}
+.card:hover{
+  box-shadow:0 0 20px rgba(0,224,255,.1);
+  transform:translateY(-2px);
+}
+.card h2{
+  margin-top:0;
+  margin-bottom:1rem;
+  font-size:1.25rem;
+}
+
+.card.updates h3{
+  margin:1.5rem 0 0.5rem;
+  font-size:1.1rem;
+  color:var(--accent);
+}
+.card.updates .update-item{
+  padding:0.5rem 0;
+  border-bottom:1px solid #333;
+  font-size:0.95rem;
+}
+.card.updates .update-item:last-child{
+  border-bottom:none;
+}
+.card.updates .tag{
+  display:inline-block;
+  padding:0 0.35em;
+  margin-right:0.25em;
+  font-size:0.75em;
+  line-height:1.5;
+  border-radius:4px;
+  background:var(--accent);
+  color:#000;
+  font-weight:600;
+}
+
+#addForm{
+  display:grid;
+  gap:0.75rem;
+  grid-template-columns:1fr;
+  max-width:480px;
+}
+#addForm input[type="text"],
+#addForm input[type="url"]{
+  padding:0.6rem 0.75rem;
+  border-radius:var(--radius);
+  border:1px solid #333;
+  background:#000;
+  color:var(--text);
+}
+#addForm button[type="submit"]{
+  justify-self:start;
+  padding:0.5rem 1.25rem;
+  background:var(--accent);
+  border:none;
+  border-radius:var(--radius);
+  color:#000;
+  font-weight:600;
+  transition:filter var(--trans),transform var(--trans);
+}
+#addForm button[type="submit"]:hover{
+  filter:brightness(1.1);
+  transform:translateY(-1px);
+}
+#addMsg{
+  margin-top:0.5rem;
+  font-size:0.9rem;
+  color:var(--text-dim);
+}
+
+/* Table */
+.card table{
+  width:100%;
+  border-collapse:collapse;
+  overflow:hidden;
+  border-radius:var(--radius);
+}
+.card table thead{
+  background:#000;
+}
+.card table th,
+.card table td{
+  padding:0.75rem 0.5rem;
+  text-align:left;
+  border-bottom:1px solid #333;
+  font-size:0.95rem;
+  vertical-align:middle;
+}
+.card table tbody tr:hover{
+  background:var(--bg-card-alt);
+}
+.card table th:first-child,
+.card table td:first-child{padding-left:1rem;}
+.card table th:last-child,
+.card table td:last-child{padding-right:1rem;}
+
+.action{
+  padding:0.25rem 0.6rem;
+  margin-right:0.25rem;
+  margin-bottom:0.25rem;
+  font-size:0.85rem;
+  border:1px solid var(--accent);
+  background:transparent;
+  color:var(--accent);
+  border-radius:var(--radius);
+  transition:background var(--trans),color var(--trans);
+}
+.action:hover{
+  background:var(--accent);
+  color:#000;
+}
+.action:last-child{
+  margin-right:0;
+}
+.action.danger{
+  border-color:var(--danger);
+  color:var(--danger);
+}
+.action.danger:hover{
+  background:var(--danger);
+  color:#000;
+}
+
+/* Responsive table: scroll on narrow screens */
+@media (max-width:600px){
+  .card table{display:block;overflow-x:auto;white-space:nowrap;}
+  .nav-left{gap:0.75rem;}
+  .nav-right #userName{display:none;}
+}
+
+/* Loading shimmer (optional utility) */
+.loading-shimmer{
+  background:linear-gradient(90deg,#1a1a1a 25%,#2a2a2a 37%,#1a1a1a 63%);
+  background-size:400% 100%;
+  animation:shimmer 1.4s ease infinite;
+  height:1em;
+  width:100%;
+  border-radius:4px;
+}
+@keyframes shimmer{
+  0%{background-position:-400px 0;}
+  100%{background-position:400px 0;}
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="nav-wrap">
+    <div class="nav-left">
+      <span class="brand">Competitor Tracker</span>
+      <nav>
+        <a href="competitors.html" id="navHome" class="active">Home</a>
+        <a href="about.html" id="navAbout">About</a>
+      </nav>
+    </div>
+    <div class="nav-right">
+      <img id="userAvatar" alt="Profile" />
+      <span id="userName"></span>
+      <button id="logoutBtn" type="button">Logout</button>
+    </div>
+  </div>
+</header>
+
+<section class="banner">
+  <h1>Competitor Tracker</h1>
+  <p>Monitor rivals. Spot changes. Stay ahead.</p>
+</section>
+
+<main class="main-wrap">
+
+  <div class="card">
+    <h2>Add Competitor</h2>
+    <form id="addForm" autocomplete="off">
+      <input type="text" id="name" placeholder="Competitor Name" required />
+      <input type="url" id="url" placeholder="Competitor URL (https://...)" required />
+      <input type="text" id="rss" placeholder="RSS Feed URL(s) — comma separated (optional)" />
+      <button type="submit">Add</button>
+    </form>
+    <div id="addMsg" role="status" aria-live="polite"></div>
+  </div>
+
+  <div class="card">
+    <h2>Competitors</h2>
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Name</th>
+          <th scope="col">Domain</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="competitorsBody"></tbody>
+    </table>
+  </div>
+
+  <!-- AI Summary Card -->
+  <div class="card updates" id="aiSummaryCard" style="display:none;">
+    <h2 id="aiSummaryTitle">AI Summary</h2>
+    <div id="aiSummaryContent"></div>
+  </div>
+
+  <!-- Updates Card -->
+  <div class="card updates" id="updatesCard" style="display:none;">
+    <h2 id="updatesTitle">Updates</h2>
+    <div id="updatesList"></div>
+  </div>
+
+</main>
+
+<script>
+/* ---------- Firebase Init ---------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyDPFYs1WCJ2lgQOAiHm0bFbqlol5p3z75o",
+  authDomain: "hackathon-bb760.firebaseapp.com",
+  projectId: "hackathon-bb760",
+  storageBucket: "hackathon-bb760.appspot.com",
+  messagingSenderId: "761847647380",
+  appId: "1:761847647380:web:1253f7ad05bd7489ceb881"
+};
+firebase.initializeApp(firebaseConfig);
+
+/* ---------- DOM Refs ---------- */
+const avatarEl = document.getElementById("userAvatar");
+const userNameEl = document.getElementById("userName");
+const logoutBtn = document.getElementById("logoutBtn");
+const competitorsBody = document.getElementById("competitorsBody");
+const addForm = document.getElementById("addForm");
+const addMsgEl = document.getElementById("addMsg");
+const aiSummaryCard = document.getElementById("aiSummaryCard");
+const aiSummaryTitle = document.getElementById("aiSummaryTitle");
+const aiSummaryContent = document.getElementById("aiSummaryContent");
+const updatesCard = document.getElementById("updatesCard");
+const updatesTitle = document.getElementById("updatesTitle");
+const updatesList = document.getElementById("updatesList");
+
+logoutBtn.addEventListener("click", logout);
+addForm.addEventListener("submit", addCompetitor);
+
+/* ---------- API Base ---------- */
+const API = "http://localhost:3000/api/competitors"; // adjust if deployed
+
+/* ---------- Auth State ---------- */
+firebase.auth().onAuthStateChanged(async user => {
+  if (!user) {
+    window.location.href = "landing.html";
+    return;
+  }
+  try {
+    await user.getIdToken(true); // refresh token
+  } catch (err) {
+    console.error("[Auth] Failed to refresh ID token:", err);
+    window.location.href = "landing.html";
+    return;
+  }
+  showUserProfile(user);
+  loadCompetitors(); // safe to load
+});
+
+/* ---------- Logout ---------- */
+function logout() {
+  firebase.auth().signOut().then(() => {
+    window.location.href = "landing.html";
+  });
+}
+
+/* ---------- User Profile / Avatar ---------- */
+function showUserProfile(user) {
+  const name = user.displayName || (user.email ? user.email.split("@")[0] : "User");
+  userNameEl.textContent = name;
+
+  const isGoogle = user.providerData.some(p => p.providerId === "google.com");
+
+  if (isGoogle && user.photoURL) {
+    const url = user.photoURL.includes("=s") ? user.photoURL : user.photoURL + "?sz=64";
+    avatarEl.src = url;
+    avatarEl.onerror = () => {
+      avatarEl.src = makeInitialsAvatar(getInitials(name));
+    };
+    return;
+  }
+
+  avatarEl.src = makeInitialsAvatar(getInitials(name));
+}
+
+function getInitials(name) {
+  if (!name) return "?";
+
+  const parts = name
+    .trim()
+    .split(/\s+/)
+    .map(p => p.replace(/[^A-Za-z]/g, '')) // Keep only letters
+    .filter(p => p.length > 0);            // Remove empty parts
+
+  if (parts.length === 0) return "?";
+
+  // Find first valid "word" (length >= 2)
+  let first = parts.find(p => p.length >= 2) || parts[0];
+  let last = parts[parts.length - 1];
+
+  return (first[0] + last[0]).toUpperCase();
+}
+
+
+
+function makeInitialsAvatar(initials) {
+  const size = 64;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+
+  const hue = hashString(initials) % 360;
+  ctx.fillStyle = `hsl(${hue}, 70%, 40%)`;
+  ctx.fillRect(0, 0, size, size);
+
+  ctx.font = "bold 28px sans-serif";
+  ctx.fillStyle = "#fff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(initials, size / 2, size / 2);
+
+  return canvas.toDataURL("image/png");
+}
+
+function hashString(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = (h << 5) - h + str.charCodeAt(i);
+    h |= 0;
+  }
+  return Math.abs(h);
+}
+
+
+/* ---------- Auth Headers Helper ---------- */
+async function getAuthHeaders(forceRefresh = false) {
+  const user = firebase.auth().currentUser;
+  if (!user) throw new Error("User not logged in (getAuthHeaders)");
+  const token = await user.getIdToken(forceRefresh);
+  console.debug("[Auth] Token len:", token.length);
+  return {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${token}`
+  };
+}
+
+/* ---------- Add Competitor ---------- */
+async function addCompetitor(e) {
+  e.preventDefault();
+  const name = document.getElementById("name").value.trim();
+  const url = document.getElementById("url").value.trim();
+  const rssText = document.getElementById("rss").value.trim();
+  const rssFeeds = rssText ? rssText.split(",").map(s => s.trim()).filter(Boolean) : [];
+
+  addMsgEl.textContent = "Adding...";
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(API, {
+      method:"POST",
+      headers,
+      body: JSON.stringify({ name, url, rssFeeds })
+    });
+    const data = await res.json();
+    addMsgEl.textContent = data.message || data.error || "Done";
+    if (res.ok) {
+      e.target.reset();
+      loadCompetitors();
+    } else {
+      console.error("[Add competitor] server error:", data);
+    }
+  } catch (err) {
+    console.error("[Add competitor] error:", err);
+    addMsgEl.textContent = "Failed to add competitor.";
+  }
+}
+
+/* ---------- Load Competitors ---------- */
+async function loadCompetitors() {
+  competitorsBody.innerHTML = `<tr><td colspan="3"><div class="loading-shimmer"></div></td></tr>`;
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(API, { headers });
+    const data = await res.json();
+    if (!res.ok) {
+      console.error("[Load competitors] server error:", data);
+      competitorsBody.innerHTML = `<tr><td colspan="3">Failed to load competitors.</td></tr>`;
+      return;
+    }
+    renderCompetitorsTable(data.competitors || []);
+  } catch (err) {
+    console.error("[Load competitors] error:", err);
+    competitorsBody.innerHTML = `<tr><td colspan="3">Failed to load competitors.</td></tr>`;
+  }
+}
+
+function renderCompetitorsTable(competitors) {
+  competitorsBody.innerHTML = "";
+  if (!competitors.length) {
+    competitorsBody.innerHTML = `<tr><td colspan="3" style="color:var(--text-dim);">No competitors yet.</td></tr>`;
+    return;
+  }
+  competitors.forEach(c => {
+    const tr = document.createElement("tr");
+
+    const tdName = document.createElement("td");
+    tdName.textContent = c.displayName || c.domain;
+
+    const tdDomain = document.createElement("td");
+    tdDomain.textContent = c.domain;
+
+    const tdActions = document.createElement("td");
+    // Scan
+    const btnScan = document.createElement("button");
+    btnScan.className = "action";
+    btnScan.textContent = "Scan";
+    btnScan.addEventListener("click", () => scanCompetitor(c.domain));
+    tdActions.appendChild(btnScan);
+    // AI Summary
+    const btnAISum = document.createElement("button");
+    btnAISum.className = "action";
+    btnAISum.textContent = "AI Summary";
+    btnAISum.addEventListener("click", () => viewAISummary(c.domain));
+    tdActions.appendChild(btnAISum);
+    // View
+    const btnView = document.createElement("button");
+    btnView.className = "action";
+    btnView.textContent = "View";
+    btnView.addEventListener("click", () => viewUpdates(c.domain));
+    tdActions.appendChild(btnView);
+    // Delete
+    const btnDel = document.createElement("button");
+    btnDel.className = "action danger";
+    btnDel.textContent = "Delete";
+    btnDel.addEventListener("click", () => deleteCompetitor(c.domain));
+    tdActions.appendChild(btnDel);
+
+    tr.appendChild(tdName);
+    tr.appendChild(tdDomain);
+    tr.appendChild(tdActions);
+    competitorsBody.appendChild(tr);
+  });
+}
+
+/* ---------- Scan Competitor ---------- */
+async function scanCompetitor(domain) {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API}/${encodeURIComponent(domain)}/scan`, { method:"POST", headers });
+    const data = await res.json();
+    alert(`${data.message || 'Scan done'} (Web: ${data.websiteUpdates ?? '?'} , RSS: ${data.rssUpdates ?? '?'})`);
+  } catch (err) {
+    console.error("[Scan competitor] error:", err);
+    alert("Scan failed.");
+  }
+}
+
+/* ---------- AI Summary ---------- */
+async function viewAISummary(domain) {
+  aiSummaryTitle.textContent = `AI Summary – ${domain}`;
+  aiSummaryContent.innerHTML = `<div class="loading-shimmer" style="height:1.2em;width:60%;"></div>`;
+  aiSummaryCard.style.display = "block";
+
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API}/${encodeURIComponent(domain)}/ai-summary`, { headers });
+    const data = await res.json();
+    if (!res.ok) {
+      console.error("[AI summary] server error:", data);
+      aiSummaryContent.textContent = data.error || "Failed to load AI summary.";
+      return;
+    }
+    aiSummaryContent.textContent = data.aiSummary || "No AI summary available.";
+    aiSummaryCard.scrollIntoView({ behavior: "smooth" });
+  } catch (err) {
+    console.error("[AI summary fetch error]:", err);
+    aiSummaryContent.textContent = "Failed to load AI summary.";
+  }
+}
+
+/* ---------- Structured Updates ---------- */
+async function viewUpdates(domain) {
+  updatesTitle.textContent = `Updates – ${domain}`;
+  updatesList.innerHTML = `<div class="loading-shimmer" style="height:1.2em;width:60%;"></div>`;
+  updatesCard.style.display = "block";
+
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API}/${encodeURIComponent(domain)}`, { headers });
+    const data = await res.json();
+    if (!res.ok) {
+      console.error("[View updates] server error:", data);
+      updatesList.innerHTML = `<p>Failed to load updates.</p>`;
+      return;
+    }
+    renderUpdatesList(data.report || {});
+    updatesCard.scrollIntoView({ behavior: "smooth" });
+  } catch (err) {
+    console.error("[View updates] error:", err);
+    updatesList.innerHTML = `<p>Failed to load updates.</p>`;
+  }
+}
+
+function renderUpdatesList(report) {
+  const { priceChanges = [], contentUpdates = [], additions = [], removals = [] } = report;
+
+  let html = "";
+
+  // Price changes
+  html += `<h3>Price Changes</h3>`;
+  if (!priceChanges.length) {
+    html += `<p>No price changes.</p>`;
+  } else {
+    priceChanges.forEach(p => {
+      const dirWord = p.direction === "drop" ? "dropped" :
+                      p.direction === "increase" ? "increased" : "changed";
+      html += `<div class="update-item">• ${sanitize(p.itemName)} ${dirWord} from ₹${sanitize(p.oldPrice) ?? "?"} to ₹${sanitize(p.newPrice) ?? "?"} <br><small>${sanitize(p.time)}</small></div>`;
+    });
+  }
+
+  // Content updates
+  html += `<h3>Content Updates</h3>`;
+  if (!contentUpdates.length) {
+    html += `<p>No content changes.</p>`;
+  } else {
+    contentUpdates.forEach(cu => {
+      html += `<div class="update-item"><strong>Changed:</strong><br>From: ${sanitize(cu.oldSnippet) || "-"}<br>To: ${sanitize(cu.newSnippet) || "-"}<br><small>${sanitize(cu.time)}</small></div>`;
+    });
+  }
+
+  // Additions & removals
+  html += `<h3>Additions & Removals</h3>`;
+  if (!additions.length && !removals.length) {
+    html += `<p>No additions or removals.</p>`;
+  } else {
+    additions.forEach(a => {
+      html += `<div class="update-item"><span class="tag">Added</span> ${sanitize(a.text)}<br><small>${sanitize(a.time)}</small></div>`;
+    });
+    removals.forEach(r => {
+      html += `<div class="update-item"><span class="tag">Removed</span> ${sanitize(r.text)}<br><small>${sanitize(r.time)}</small></div>`;
+    });
+  }
+
+  updatesList.innerHTML = html;
+}
+
+/* ---------- Delete Competitor ---------- */
+async function deleteCompetitor(domain) {
+  if (!confirm(`Delete ${domain}?`)) return;
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API}/${encodeURIComponent(domain)}`, { method:"DELETE", headers });
+    if (!res.ok) {
+      const data = await res.json();
+      console.error("[Delete competitor] server error:", data);
+      alert("Delete failed.");
+      return;
+    }
+    loadCompetitors();
+  } catch (err) {
+    console.error("[Delete competitor] error:", err);
+    alert("Delete failed.");
+  }
+}
+
+/* ---------- Sanitization ---------- */
+/* Minimal text sanitization to reduce risk of HTML injection for fields coming from server. */
+function sanitize(val) {
+  if (val === null || val === undefined) return "";
+  return String(val)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+</script>
+</body>
+</html>
