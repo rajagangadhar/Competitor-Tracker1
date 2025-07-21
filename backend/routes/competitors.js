@@ -4,7 +4,7 @@ import { db, FieldValue } from "../config/firebaseAdmin.js";
 import { normalizeInputUrl } from "../utils/url.js";
 import { scanWebsitePage } from "../services/scanner/websiteScanner.js";
 import { scanRssFeed } from "../services/scanner/rssScanner.js";
-import { saveWebsiteDiff, saveRssItems } from "../services/storage.js";
+import { saveWebsiteDiff, saveRssItems, getPageContent } from "../services/storage.js";
 import { generateText } from "../gemini/geminiClient.js";
 
 // ------------------------------------------------------------------
@@ -149,6 +149,32 @@ competitorsRouter.get("/:domain", async (req, res) => {
     });
   } catch (e) {
     console.error("[GET /competitors/:domain] error:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/* ------------------------------------------------------------------
+ * GET /api/competitors/:domain/page?url=<full url>
+ * Return stored page HTML (handles chunked storage).
+ * ------------------------------------------------------------------ */
+competitorsRouter.get("/:domain/page", async (req, res) => {
+  const uid = getUid(req);
+  try {
+    const { domain } = req.params;
+    const { url } = req.query; // ?url=https://flipkart.com
+    if (!url) {
+      return res.status(400).json({ error: "url query param required" });
+    }
+
+    const content = await getPageContent(uid, domain, url);
+    if (!content) {
+      return res.status(404).json({ error: "Page content not found" });
+    }
+
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(content);
+  } catch (e) {
+    console.error("[GET /competitors/:domain/page] error:", e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -376,6 +402,7 @@ function buildReport(raw) {
   }
   return report;
 }
+const bullet = "→";  // or "•", "►", "◆", etc.
 
 function buildAISummaryPrompt(domain, report) {
   // cap counts to keep prompt short

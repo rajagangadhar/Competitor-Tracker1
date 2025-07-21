@@ -1,25 +1,7 @@
 /**
  * Universal Smart Scraper + Summarizer
  * ------------------------------------
- * Usage:
- *   import { scrapeAndSummarize } from "./services/smartScraper.js";
- *   const result = await scrapeAndSummarize({
- *     url: "https://amazon.in",
- *     previousText: oldSnapshotText   // optional
- *   });
- *
- * Returns:
- * {
- *   url,
- *   fetchedAt,
- *   title,
- *   rawHtml,
- *   cleanText,
- *   lines,            // cleaned, deduped lines
- *   prices,           // [{raw:"₹1,299.00", value:1299, currency:"INR"}...]
- *   diff: { added:[], removed:[], changed:[] },  // vs previousText (if provided)
- *   summary           // AI or heuristic summary
- * }
+ * Now includes automatic saving of raw HTML content to Firestore/Storage
  */
 
 import { JSDOM } from "jsdom";
@@ -31,11 +13,13 @@ import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import axios from "axios";
 import * as cheerio from "cheerio";
 
-
 const chromiumWithStealth = chromium.use(StealthPlugin());
 
 // Try Gemini first (your existing client)
 import { generateText as geminiGenerateText } from "../gemini/geminiClient.js";
+
+// Storage utility for large content
+import { savePageContent } from "./storage.js";  // <--- ADDED
 
 // Optional OpenAI fallback (only if OPENAI_API_KEY set)
 let openaiGenerateText = null;
@@ -65,25 +49,42 @@ async function fetchHtmlFallback(url) {
   return data;
 }
 
-export async function scrapeAndSummarize({ url, previousText = "" }) {
+/**
+ * Main scraper + summary generator
+ * @param {Object} params
+ * @param {string} params.url - Target URL
+ * @param {string} [params.previousText] - Optional previous snapshot text
+ * @param {string} [params.userId] - Optional userId for storage
+ * @param {string} [params.domain] - Optional domain for storage
+ */
+export async function scrapeAndSummarize({ url, previousText = "", userId, domain }) {
   const fetchedAt = Date.now();
 
   // 1. Render page & get HTML
   const { html, title } = await fetchRenderedHtml(url);
 
-  // 2. Clean & extract key text
+  // 2. Optionally save raw HTML content
+  if (userId && domain) {
+    try {
+      await savePageContent(userId, domain, url, html);
+    } catch (err) {
+      console.error(`[SmartScraper] Failed to save page content for ${url}:`, err);
+    }
+  }
+
+  // 3. Clean & extract key text
   const cleanText = extractMeaningfulText(html);
 
-  // 3. Split into lines, clean, dedupe, drop junk
+  // 4. Split into lines, clean, dedupe, drop junk
   const lines = cleanLines(cleanText);
 
-  // 4. Extract price candidates
+  // 5. Extract price candidates
   const prices = extractPrices(lines);
 
-  // 5. Diff vs previous version (optional)
+  // 6. Diff vs previous version (optional)
   const diff = previousText ? buildDiff(previousText, cleanText) : { added: [], removed: [], changed: [] };
 
-  // 6. Get AI summary (structured → short)
+  // 7. Get AI summary
   const summary = await summarizeWithAI({
     url,
     title,
@@ -109,36 +110,35 @@ export async function scrapeAndSummarize({ url, previousText = "" }) {
 /* 1. Render + HTML                                                   */
 /* ------------------------------------------------------------------ */
 async function fetchRenderedHtml(url) {
-    try {
-        const browser = await chromiumWithStealth.launch({
-  headless: true,
-  args: ["--no-sandbox", "--disable-setuid-sandbox"]
-});
+  try {
+    const browser = await chromiumWithStealth.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"]
+    });
 
+    const page = await browser.newPage();
 
-        const page = await browser.newPage();
+    await page.setUserAgent(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+      "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+    );
 
-        await page.setUserAgent(
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
-            "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
-        );
+    await page.setViewportSize({ width: 1366, height: 768 });
 
-        await page.setViewportSize({ width: 1366, height: 768 });
+    await page.goto(url, { waitUntil: "networkidle", timeout: 120000 });
 
-        await page.goto(url, { waitUntil: "networkidle", timeout: 120000 });
+    await autoScroll(page); // optional if you have autoScroll function
 
-        await autoScroll(page); // optional if you have autoScroll function
+    const html = await page.content();
+    const title = await page.title();
 
-        const html = await page.content();
-        const title = await page.title();
-
-        await browser.close();
-        return { html, title };
-    } catch (err) {
-        console.warn("[SmartScraper] Playwright failed, using fallback:", err.message);
-        const html = await fetchHtmlFallback(url);
-        return { html, title: "<no title>" };
-    }
+    await browser.close();
+    return { html, title };
+  } catch (err) {
+    console.warn("[SmartScraper] Playwright failed, using fallback:", err.message);
+    const html = await fetchHtmlFallback(url);
+    return { html, title: "<no title>" };
+  }
 }
 
 async function autoScroll(page, step = 1000, delay = 250, maxScrolls = 20) {
@@ -148,6 +148,9 @@ async function autoScroll(page, step = 1000, delay = 250, maxScrolls = 20) {
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* (rest of your code remains same: extractMeaningfulText, cleanLines, etc.) */
+/* ------------------------------------------------------------------ */
 
 /* ------------------------------------------------------------------ */
 /* 2. Clean & Extract                                                 */

@@ -1,732 +1,1091 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<title>Competitor Tracker</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="theme-color" content="#000000" />
-
-<!-- Firebase (compat for existing code) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-
-<style>
-:root {
-  --bg: #0d0d0d;
-  --bg-card: #1a1a1a;
-  --bg-card-alt: #222;
-  --bg-banner: linear-gradient(135deg,#000000 0%,#121212 100%);
-  --text: #f5f5f5;
-  --text-dim: #bbbbbb;
-  --accent: #00e0ff;
-  --accent-hover: #66f0ff;
-  --danger: #ff4d4d;
-  --danger-hover: #ff8080;
-  --radius: 8px;
-  --pad: 1rem;
-  --trans: 0.15s;
-  --font-body: system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-  --font-mono: ui-monospace,Menlo,Consolas,monospace;
-}
-
-*{box-sizing:border-box;}
-html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--font-body);line-height:1.4;}
-img{max-width:100%;display:block;}
-a{color:var(--accent);text-decoration:none;}
-a:hover{color:var(--accent-hover);text-decoration:underline;}
-button{cursor:pointer;font:inherit;}
-
-.visually-hidden{position:absolute!important;height:1px;width:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap;}
-
-header.site-header{
-  width:100%;
-  background:#000;
-  border-bottom:1px solid #333;
-  position:sticky;
-  top:0;
-  z-index:100;
-}
-header.site-header .nav-wrap{
-  max-width:1200px;
-  margin:0 auto;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:0.5rem 1rem;
-}
-.nav-left{
-  display:flex;
-  align-items:center;
-  gap:1.25rem;
-}
-.nav-left .brand{
-  font-size:1.25rem;
-  font-weight:600;
-  letter-spacing:.5px;
-}
-.nav-left .brand::before{
-  content:"▶";
-  display:inline-block;
-  margin-right:.4em;
-  font-size:.85em;
-  color:var(--accent);
-}
-.nav-left nav a{
-  font-size:0.95rem;
-  padding:0.25rem 0;
-  position:relative;
-}
-.nav-left nav a.active::after{
-  content:"";
-  position:absolute;
-  left:0;
-  bottom:-0.4rem;
-  width:100%;
-  height:2px;
-  background:var(--accent);
-}
-
-.nav-right{
-  display:flex;
-  align-items:center;
-  gap:0.75rem;
-}
-.nav-right #userName{
-  font-size:0.9rem;
-  color:var(--text-dim);
-  max-width:120px;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-  overflow:hidden;
-}
-.nav-right #userAvatar{
-  width:32px;
-  height:32px;
-  border-radius:50%;
-  border:1px solid #333;
-  object-fit:cover;
-  background:#333;
-}
-.nav-right #logoutBtn{
-  padding:0.25rem 0.75rem;
-  background:transparent;
-  border:1px solid #333;
-  border-radius:var(--radius);
-  color:var(--text-dim);
-  transition:background var(--trans),color var(--trans),border var(--trans);
-}
-.nav-right #logoutBtn:hover{
-  background:#222;
-  border-color:var(--accent);
-  color:var(--accent-hover);
-}
-
-.banner{
-  background:var(--bg-banner);
-  padding:4rem 1rem 3rem;
-  text-align:center;
-  border-bottom:1px solid #333;
-}
-.banner h1{
-  margin:0 0 0.5rem;
-  font-size:clamp(2rem,5vw,3rem);
-  font-weight:700;
-}
-.banner p{
-  margin:0;
-  color:var(--text-dim);
-}
-
-.main-wrap{
-  max-width:1200px;
-  margin:0 auto;
-  padding:2rem 1rem 6rem;
-}
-
-.card{
-  background:var(--bg-card);
-  border:1px solid #333;
-  border-radius:var(--radius);
-  padding:var(--pad);
-  margin-bottom:2rem;
-  box-shadow:0 0 0 transparent;
-  transition:box-shadow var(--trans),transform var(--trans);
-}
-.card:hover{
-  box-shadow:0 0 20px rgba(0,224,255,.1);
-  transform:translateY(-2px);
-}
-.card h2{
-  margin-top:0;
-  margin-bottom:1rem;
-  font-size:1.25rem;
-}
-
-.card.updates h3{
-  margin:1.5rem 0 0.5rem;
-  font-size:1.1rem;
-  color:var(--accent);
-}
-.card.updates .update-item{
-  padding:0.5rem 0;
-  border-bottom:1px solid #333;
-  font-size:0.95rem;
-}
-.card.updates .update-item:last-child{
-  border-bottom:none;
-}
-.card.updates .tag{
-  display:inline-block;
-  padding:0 0.35em;
-  margin-right:0.25em;
-  font-size:0.75em;
-  line-height:1.5;
-  border-radius:4px;
-  background:var(--accent);
-  color:#000;
-  font-weight:600;
-}
-
-#addForm{
-  display:grid;
-  gap:0.75rem;
-  grid-template-columns:1fr;
-  max-width:480px;
-}
-#addForm input[type="text"],
-#addForm input[type="url"]{
-  padding:0.6rem 0.75rem;
-  border-radius:var(--radius);
-  border:1px solid #333;
-  background:#000;
-  color:var(--text);
-}
-#addForm button[type="submit"]{
-  justify-self:start;
-  padding:0.5rem 1.25rem;
-  background:var(--accent);
-  border:none;
-  border-radius:var(--radius);
-  color:#000;
-  font-weight:600;
-  transition:filter var(--trans),transform var(--trans);
-}
-#addForm button[type="submit"]:hover{
-  filter:brightness(1.1);
-  transform:translateY(-1px);
-}
-#addMsg{
-  margin-top:0.5rem;
-  font-size:0.9rem;
-  color:var(--text-dim);
-}
-
-/* Table */
-.card table{
-  width:100%;
-  border-collapse:collapse;
-  overflow:hidden;
-  border-radius:var(--radius);
-}
-.card table thead{
-  background:#000;
-}
-.card table th,
-.card table td{
-  padding:0.75rem 0.5rem;
-  text-align:left;
-  border-bottom:1px solid #333;
-  font-size:0.95rem;
-  vertical-align:middle;
-}
-.card table tbody tr:hover{
-  background:var(--bg-card-alt);
-}
-.card table th:first-child,
-.card table td:first-child{padding-left:1rem;}
-.card table th:last-child,
-.card table td:last-child{padding-right:1rem;}
-
-.action{
-  padding:0.25rem 0.6rem;
-  margin-right:0.25rem;
-  margin-bottom:0.25rem;
-  font-size:0.85rem;
-  border:1px solid var(--accent);
-  background:transparent;
-  color:var(--accent);
-  border-radius:var(--radius);
-  transition:background var(--trans),color var(--trans);
-}
-.action:hover{
-  background:var(--accent);
-  color:#000;
-}
-.action:last-child{
-  margin-right:0;
-}
-.action.danger{
-  border-color:var(--danger);
-  color:var(--danger);
-}
-.action.danger:hover{
-  background:var(--danger);
-  color:#000;
-}
-
-/* Responsive table: scroll on narrow screens */
-@media (max-width:600px){
-  .card table{display:block;overflow-x:auto;white-space:nowrap;}
-  .nav-left{gap:0.75rem;}
-  .nav-right #userName{display:none;}
-}
-
-/* Loading shimmer (optional utility) */
-.loading-shimmer{
-  background:linear-gradient(90deg,#1a1a1a 25%,#2a2a2a 37%,#1a1a1a 63%);
-  background-size:400% 100%;
-  animation:shimmer 1.4s ease infinite;
-  height:1em;
-  width:100%;
-  border-radius:4px;
-}
-@keyframes shimmer{
-  0%{background-position:-400px 0;}
-  100%{background-position:400px 0;}
-}
-</style>
-</head>
-<body>
-
-<header class="site-header">
-  <div class="nav-wrap">
-    <div class="nav-left">
-      <span class="brand">Competitor Tracker</span>
-      <nav>
-        <a href="competitors.html" id="navHome" class="active">Home</a>
-        <a href="about.html" id="navAbout">About</a>
-      </nav>
-    </div>
-    <div class="nav-right">
-      <img id="userAvatar" alt="Profile" />
-      <span id="userName"></span>
-      <button id="logoutBtn" type="button">Logout</button>
-    </div>
-  </div>
-</header>
-
-<section class="banner">
-  <h1>Competitor Tracker</h1>
-  <p>Monitor rivals. Spot changes. Stay ahead.</p>
-</section>
-
-<main class="main-wrap">
-
-  <div class="card">
-    <h2>Add Competitor</h2>
-    <form id="addForm" autocomplete="off">
-      <input type="text" id="name" placeholder="Competitor Name" required />
-      <input type="url" id="url" placeholder="Competitor URL (https://...)" required />
-      <input type="text" id="rss" placeholder="RSS Feed URL(s) — comma separated (optional)" />
-      <button type="submit">Add</button>
-    </form>
-    <div id="addMsg" role="status" aria-live="polite"></div>
-  </div>
-
-  <div class="card">
-    <h2>Competitors</h2>
-    <table>
-      <thead>
-        <tr>
-          <th scope="col">Name</th>
-          <th scope="col">Domain</th>
-          <th scope="col">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="competitorsBody"></tbody>
-    </table>
-  </div>
-
-  <!-- AI Summary Card -->
-  <div class="card updates" id="aiSummaryCard" style="display:none;">
-    <h2 id="aiSummaryTitle">AI Summary</h2>
-    <div id="aiSummaryContent"></div>
-  </div>
-
-  <!-- Updates Card -->
-  <div class="card updates" id="updatesCard" style="display:none;">
-    <h2 id="updatesTitle">Updates</h2>
-    <div id="updatesList"></div>
-  </div>
-
-</main>
-
-<script>
-/* ---------- Firebase Init ---------- */
-const firebaseConfig = {
-  apiKey: "AIzaSyDPFYs1WCJ2lgQOAiHm0bFbqlol5p3z75o",
-  authDomain: "hackathon-bb760.firebaseapp.com",
-  projectId: "hackathon-bb760",
-  storageBucket: "hackathon-bb760.appspot.com",
-  messagingSenderId: "761847647380",
-  appId: "1:761847647380:web:1253f7ad05bd7489ceb881"
-};
-firebase.initializeApp(firebaseConfig);
-
-/* ---------- DOM Refs ---------- */
-const avatarEl = document.getElementById("userAvatar");
-const userNameEl = document.getElementById("userName");
-const logoutBtn = document.getElementById("logoutBtn");
-const competitorsBody = document.getElementById("competitorsBody");
-const addForm = document.getElementById("addForm");
-const addMsgEl = document.getElementById("addMsg");
-const aiSummaryCard = document.getElementById("aiSummaryCard");
-const aiSummaryTitle = document.getElementById("aiSummaryTitle");
-const aiSummaryContent = document.getElementById("aiSummaryContent");
-const updatesCard = document.getElementById("updatesCard");
-const updatesTitle = document.getElementById("updatesTitle");
-const updatesList = document.getElementById("updatesList");
-
-logoutBtn.addEventListener("click", logout);
-addForm.addEventListener("submit", addCompetitor);
-
-/* ---------- API Base ---------- */
-const API = "http://localhost:3000/api/competitors"; // adjust if deployed
-
-/* ---------- Auth State ---------- */
-firebase.auth().onAuthStateChanged(async user => {
-  if (!user) {
-    window.location.href = "landing.html";
-    return;
-  }
-  try {
-    await user.getIdToken(true); // refresh token
-  } catch (err) {
-    console.error("[Auth] Failed to refresh ID token:", err);
-    window.location.href = "landing.html";
-    return;
-  }
-  showUserProfile(user);
-  loadCompetitors(); // safe to load
-});
-
-/* ---------- Logout ---------- */
-function logout() {
-  firebase.auth().signOut().then(() => {
-    window.location.href = "landing.html";
-  });
-}
-
-/* ---------- User Profile / Avatar ---------- */
-function showUserProfile(user) {
-  const name = user.displayName || (user.email ? user.email.split("@")[0] : "User");
-  userNameEl.textContent = name;
-
-  const isGoogle = user.providerData.some(p => p.providerId === "google.com");
-
-  if (isGoogle && user.photoURL) {
-    const url = user.photoURL.includes("=s") ? user.photoURL : user.photoURL + "?sz=64";
-    avatarEl.src = url;
-    avatarEl.onerror = () => {
-      avatarEl.src = makeInitialsAvatar(getInitials(name));
-    };
-    return;
-  }
-
-  avatarEl.src = makeInitialsAvatar(getInitials(name));
-}
-
-function getInitials(name) {
-  if (!name) return "?";
-
-  const parts = name
-    .trim()
-    .split(/\s+/)
-    .map(p => p.replace(/[^A-Za-z]/g, '')) // Keep only letters
-    .filter(p => p.length > 0);            // Remove empty parts
-
-  if (parts.length === 0) return "?";
-
-  // Find first valid "word" (length >= 2)
-  let first = parts.find(p => p.length >= 2) || parts[0];
-  let last = parts[parts.length - 1];
-
-  return (first[0] + last[0]).toUpperCase();
-}
-
-
-
-function makeInitialsAvatar(initials) {
-  const size = 64;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-
-  const hue = hashString(initials) % 360;
-  ctx.fillStyle = `hsl(${hue}, 70%, 40%)`;
-  ctx.fillRect(0, 0, size, size);
-
-  ctx.font = "bold 28px sans-serif";
-  ctx.fillStyle = "#fff";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(initials, size / 2, size / 2);
-
-  return canvas.toDataURL("image/png");
-}
-
-function hashString(str) {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) {
-    h = (h << 5) - h + str.charCodeAt(i);
-    h |= 0;
-  }
-  return Math.abs(h);
-}
-
-
-/* ---------- Auth Headers Helper ---------- */
-async function getAuthHeaders(forceRefresh = false) {
-  const user = firebase.auth().currentUser;
-  if (!user) throw new Error("User not logged in (getAuthHeaders)");
-  const token = await user.getIdToken(forceRefresh);
-  console.debug("[Auth] Token len:", token.length);
-  return {
-    "Content-Type": "application/json",
-    "Authorization": `Bearer ${token}`
-  };
-}
-
-/* ---------- Add Competitor ---------- */
-async function addCompetitor(e) {
-  e.preventDefault();
-  const name = document.getElementById("name").value.trim();
-  const url = document.getElementById("url").value.trim();
-  const rssText = document.getElementById("rss").value.trim();
-  const rssFeeds = rssText ? rssText.split(",").map(s => s.trim()).filter(Boolean) : [];
-
-  addMsgEl.textContent = "Adding...";
-  try {
-    const headers = await getAuthHeaders();
-    const res = await fetch(API, {
-      method:"POST",
-      headers,
-      body: JSON.stringify({ name, url, rssFeeds })
-    });
-    const data = await res.json();
-    addMsgEl.textContent = data.message || data.error || "Done";
-    if (res.ok) {
-      e.target.reset();
-      loadCompetitors();
-    } else {
-      console.error("[Add competitor] server error:", data);
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Competitor Tracker</title>
+  <link rel="shortcut icon" href="./img/logo.png" type="image/png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  
+  <style>
+    @keyframes gradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
-  } catch (err) {
-    console.error("[Add competitor] error:", err);
-    addMsgEl.textContent = "Failed to add competitor.";
-  }
+    @keyframes floating {
+      0%,100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-20px) scale(1.05); }
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden; /* prevents main scrollbar */
+    }
+    body {
+      background: linear-gradient(-45deg, #0f172a, #1e293b, #334155, #475569);
+      background-size: 400% 400%;
+      animation: gradient 15s ease infinite;
+      min-height: 100vh;
+    }
+    
+    .hamburger div { 
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+      transform-origin: center;
+    }
+    .hamburger.active .line1 { transform: rotate(45deg) translate(5px, 5px); }
+    .hamburger.active .line2 { opacity: 0; }
+    .hamburger.active .line3 { transform: rotate(-45deg) translate(5px, -5px); }
+    
+    #profileDropdown { 
+      display: none; 
+      position: absolute; 
+      right: 1rem; 
+      top: 4rem; 
+      background: rgba(31, 41, 55, 0.95);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+    
+    #mobileSidebar { 
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+      background: rgba(31, 41, 55, 0.98);
+      backdrop-filter: blur(12px);
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    #mobileSidebar.hidden { transform: translateX(-100%); }
+    #mobileSidebar.visible { transform: translateX(0); }
+    
+    .sidebar-link::before {
+      content: '';
+      position: absolute;
+      left: -1rem;
+      top: 0;
+      width: 4px;
+      height: 100%;
+      background-color: transparent;
+      border-radius: 2px;
+      transition: all 0.3s ease;
+    }
+    .sidebar-link.active::before { background-color: #3b82f6; }
+    
+    .nav-link { position: relative; }
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: -2px;
+      height: 2px;
+      width: 0;
+      background: linear-gradient(90deg, #3b82f6, #6366f1);
+      transition: width 0.3s ease;
+    }
+    .nav-link:hover::after, .nav-link.active::after { width: 100%; }
+
+    .card-hover {
+      transition: all 0.3s ease;
+      background: rgba(31, 41, 55, 0.7);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      position: relative;
+      overflow: hidden;
+    }
+    .card-hover:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+    .card-hover::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+      transform: rotate(30deg);
+      transition: all 0.6s ease;
+      opacity: 0;
+    }
+    .card-hover:hover::before { opacity: 1; left: 100%; }
+    
+    .logo-glow { text-shadow: 0 0 12px rgba(59, 130, 246, 0.5); }
+    .btn-glow { box-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
+    .btn-glow:hover { box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
+    
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    .welcome-text {
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      animation: gradient-text 8s ease infinite;
+      background-size: 200% 200%;
+    }
+    
+    /* Stylish, slim scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #3b82f6, #6366f1);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, #2563eb, #4f46e5);
+    }
+    * { scrollbar-width: thin; scrollbar-color: #3b82f6 transparent; }
+
+    @keyframes gradient-text {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    #content-scroll {
+      position: absolute;
+      top: 4rem; /* navbar height */
+      left: 0;
+      right: 0;
+      bottom: 0;
+      overflow-y: auto;
+    }
+
+    /* Custom table styling */
+    .custom-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+    .custom-table th {
+      background: rgba(31, 41, 55, 0.7);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-weight: 500;
+    }
+    .custom-table td {
+      background: rgba(31, 41, 55, 0.5);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 0.75rem 1rem;
+      vertical-align: middle;
+    }
+    .custom-table tr:hover td { background: rgba(31, 41, 55, 0.6); }
+
+    .tag {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .tag.Pricing { background: #ffd966; color: #333; }
+    .tag.ReleaseNote { background: #cfe2ff; color: #333; }
+    .tag.website { background: #d1e7dd; color: #333; }
+    .tag.rss { background: #e2e3e5; color: #333; }
+
+    .action-btn {
+      transition: all 0.2s ease;
+      background: rgba(59, 130, 246, 0.2);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      padding: 0.25rem 0.5rem;
+      margin-right: 0.25rem;
+      border-radius: 0.25rem;
+      font-size: 0.75rem;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .action-btn:hover {
+      background: rgba(59, 130, 246, 0.3);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .action-btn.danger {
+      background: rgba(239,68,68,.2);
+      border-color: rgba(239,68,68,.3);
+    }
+    .action-btn.danger:hover { background: rgba(239,68,68,.35); }
+
+    .input-field {
+      background: rgba(31, 41, 55, 0.7);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: white;
+      transition: all 0.3s ease;
+    }
+    .input-field:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+    }
+
+    .submit-btn {
+      background: linear-gradient(90deg, #3b82f6, #6366f1);
+      transition: all 0.3s ease;
+    }
+    .submit-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+    }
+
+    /* loading shimmer */
+    .loading-shimmer {
+      position: relative;
+      overflow: hidden;
+      background: rgba(255,255,255,0.08);
+      border-radius: 4px;
+      height: 1.25rem;
+    }
+    .loading-shimmer::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.15), transparent);
+      animation: shimmer 1.5s infinite;
+    }
+    .ai-summary .main-list {
+  list-style: none;
+  padding-left: 0;
 }
 
-/* ---------- Load Competitors ---------- */
-async function loadCompetitors() {
-  competitorsBody.innerHTML = `<tr><td colspan="3"><div class="loading-shimmer"></div></td></tr>`;
-  try {
-    const headers = await getAuthHeaders();
-    const res = await fetch(API, { headers });
-    const data = await res.json();
-    if (!res.ok) {
-      console.error("[Load competitors] server error:", data);
-      competitorsBody.innerHTML = `<tr><td colspan="3">Failed to load competitors.</td></tr>`;
+.ai-summary .main-list ul {
+  list-style: none;
+  padding-left: 20px;
+}
+
+.ai-summary .main-list ul li::before {
+  content: "○";
+  color: rgb(44, 44, 85);
+  margin-right: 6px;
+}
+
+/* Add these to your existing styles */
+.action-btn.loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+
+.action-btn.loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+  </style>
+</head>
+
+<body class="text-gray-100 min-h-screen flex flex-col">
+  <!-- Floating particles background -->
+  <div id="particles"></div>
+  
+  <!-- Navbar -->
+  <nav class="bg-gray-800/90 backdrop-blur-md w-full fixed top-0 z-50 border-b border-gray-700/50">
+    <div class="max-w-7xl mx-auto px-4 flex justify-between items-center h-16 relative">
+      <h1 class="text-2xl font-bold text-blue-400 logo-glow">
+        <i class="fas fa-chart-line mr-2"></i>Competitor Tracker
+      </h1>
+
+      <!-- Desktop navbar -->
+      <div class="hidden md:flex space-x-6 items-center">
+        <a href="/" class="nav-link hover:text-blue-300 active">Dashboard</a>
+        <a href="/about.html" class="nav-link hover:text-blue-300">About</a>
+        <button id="loginBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-4 rounded btn-glow transition">
+          Login
+        </button>
+        
+        <img id="profilePic" src="img/user.jpeg" alt="profile" 
+             class="w-8 h-8 rounded-full cursor-pointer hidden border-2 border-blue-400 hover:border-blue-300 transition">
+      </div>
+
+      <!-- Mobile menu - shows hamburger when logged in, login button when not -->
+      <div class="md:hidden flex items-center">
+        <button id="mobileLoginBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-4 rounded btn-glow transition">
+          Login
+        </button>
+        <div id="hamburger" class="flex flex-col space-y-1.5 cursor-pointer p-2 hamburger hidden">
+          <div class="w-6 h-0.5 bg-white line1 transition"></div>
+          <div class="w-6 h-0.5 bg-white line2 transition"></div>
+          <div class="w-6 h-0.5 bg-white line3 transition"></div>
+        </div>
+      </div>
+
+      <!-- Profile Dropdown -->
+      <div id="profileDropdown" class="rounded-xl shadow-xl p-4 w-52">
+        <div class="flex flex-col items-center text-center space-y-3">
+          <img id="dropdownPic" src="img/user.jpeg" 
+               class="w-16 h-16 rounded-full border-2 border-blue-400 shadow-md" alt="">
+          <p id="dropdownName" class="text-lg font-semibold mt-2"></p>
+          <button id="dropdownSettingsBtn"
+                  class="w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded transition btn-glow">
+            Settings
+          </button>
+          <button id="dropdownLogoutBtn"
+                  class="w-full bg-red-600 hover:bg-red-700 text-white py-1.5 rounded transition">
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Mobile Sidebar -->
+  <div id="mobileSidebar" class="md:hidden fixed top-16 left-0 w-64 h-[calc(100%-4rem)] hidden flex-col p-4 z-40 overflow-y-auto">
+    <div class="flex flex-col items-center mb-4" id="mobileProfileSection">
+      <img id="sidebarPic" src="img/user.jpeg" 
+           class="w-16 h-16 rounded-full border-2 border-blue-400 mb-3 shadow-md" alt="">
+      <p id="sidebarName" class="text-lg font-semibold"></p>
+    </div>
+    
+    <hr class="border-gray-700/50 mb-4">
+    
+    <nav class="flex flex-col space-y-2">
+      <a href="/" class="sidebar-link px-3 py-2 rounded-lg hover:bg-gray-700/50 transition relative flex items-center active">
+        <i class="fas fa-tachometer-alt mr-3 text-blue-400"></i>Dashboard
+      </a>
+      <a href="about.html" class="sidebar-link px-3 py-2 rounded-lg hover:bg-gray-700/50 transition relative flex items-center">
+    <i class="fas fa-info-circle mr-3 text-blue-400"></i>About
+  </a>
+    </nav>
+    
+    <hr class="border-gray-700/50 my-4">
+    
+    <button id="sidebarSettingsBtn" 
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition mb-2 btn-glow">
+      <i class="fas fa-cog mr-2"></i>Settings
+    </button>
+    <button id="sidebarLogoutBtn" 
+            class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg transition">
+      <i class="fas fa-sign-out-alt mr-2"></i>Logout
+    </button>
+  </div>
+
+  <!-- Main Content -->
+  <div id="content-scroll">
+    <main class="pt-8 max-w-7xl mx-auto px-4 pb-8">
+      <!-- Welcome Section -->
+      <div class="text-center mb-8">
+        <h1 class="text-4xl md:text-5xl font-bold mb-4 welcome-text">
+          Competitor Intelligence Dashboard
+        </h1>
+        <p class="text-lg text-gray-300 max-w-2xl mx-auto">
+          <span id="welcomeSubtext">Track and analyze your competitors' activities</span>
+          <span id="userWelcome" class="hidden">Welcome back, <span id="usernameDisplay"></span></span>
+        </p>
+      </div>
+      
+      <!-- Add Competitor Card -->
+      <div class="card-hover rounded-xl border border-gray-700 mb-8 p-6">
+        <h2 class="text-2xl font-semibold mb-4 flex items-center">
+          <i class="fas fa-plus-circle mr-3 text-blue-400"></i>Add Competitor
+        </h2>
+        <form id="addForm" class="space-y-4">
+          <div>
+            <input type="text" id="name" placeholder="Competitor Name" required 
+                   class="input-field w-full p-3 rounded-lg focus:outline-none" />
+          </div>
+          <div>
+            <input type="url" id="url" placeholder="Competitor URL (https://...)" required 
+                   class="input-field w-full p-3 rounded-lg focus:outline-none" />
+          </div>
+          <div>
+            <input type="text" id="rss" placeholder="RSS Feed URL (optional, comma-separated)" 
+                   class="input-field w-full p-3 rounded-lg focus:outline-none" />
+          </div>
+          <button type="submit" class="submit-btn w-full p-3 rounded-lg font-medium focus:outline-none">
+            Add Competitor
+          </button>
+        </form>
+        <div id="addMsg" class="mt-4 text-center text-sm text-gray-300"></div>
+      </div>
+      
+      <!-- Competitors Table -->
+      <div class="card-hover rounded-xl border border-gray-700 mb-8 p-6">
+        <h2 class="text-2xl font-semibold mb-4 flex items-center">
+          <i class="fas fa-users mr-3 text-blue-400"></i>Competitors
+        </h2>
+        <div class="overflow-x-auto">
+          <table class="custom-table w-full">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Domain</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="competitorsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- AI Summary Card -->
+      <div class="card-hover rounded-xl border border-gray-700 mb-8 p-6" id="aiSummaryCard" style="display:none;">
+        <h2 class="text-2xl font-semibold mb-4 flex items-center" id="aiSummaryTitle">
+          <i class="fas fa-robot mr-3 text-blue-400"></i>AI Summary
+        </h2>
+        <div id="aiSummaryContent" class="bg-gray-800/50 p-4 rounded-lg text-gray-200 text-sm leading-relaxed"></div>
+      </div>
+
+      <!-- Updates Card -->
+      <div class="card-hover rounded-xl border border-gray-700 p-6" id="updatesCard" style="display:none;">
+        <h2 class="text-2xl font-semibold mb-4 flex items-center" id="updatesTitle">
+          <i class="fas fa-bell mr-3 text-blue-400"></i>Updates
+        </h2>
+        <div id="updatesList" class="space-y-4 text-sm leading-relaxed"></div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+  /* =========================================================
+     Floating particles background
+  ========================================================== */
+  function createParticles() {
+    const container = document.getElementById('particles');
+    const particleCount = window.innerWidth < 768 ? 15 : 30;
+    for (let i = 0; i < particleCount; i++) {
+      const particle = document.createElement('div');
+      particle.classList.add('particle');
+      const size = Math.random() * 5 + 2;
+      const posX = Math.random() * 100;
+      const posY = Math.random() * 100;
+      const delay = Math.random() * 10;
+      const duration = 20 + Math.random() * 20;
+      const opacity = 0.1 + Math.random() * 0.2;
+      particle.style.width = size + 'px';
+      particle.style.height = size + 'px';
+      particle.style.left = posX + 'vw';
+      particle.style.top = posY + 'vh';
+      particle.style.opacity = opacity;
+      particle.style.animation = `floating ${duration}s ease-in-out ${delay}s infinite`;
+      container.appendChild(particle);
+    }
+  }
+  window.addEventListener('load', createParticles);
+
+  /* =========================================================
+     Firebase Init
+  ========================================================== */
+  const firebaseConfig = {
+    apiKey: "AIzaSyDPFYs1WCJ2lgQOAiHm0bFbqlol5p3z75o",
+    authDomain: "hackathon-bb760.firebaseapp.com",
+    projectId: "hackathon-bb760",
+    storageBucket: "hackathon-bb760.appspot.com",
+    messagingSenderId: "761847647380",
+    appId: "1:761847647380:web:1253f7ad05bd7489ceb881"
+  };
+  if (firebase.apps?.length) {
+    firebase.app(); // use existing
+  } else {
+    firebase.initializeApp(firebaseConfig);
+  }
+
+  /* =========================================================
+     DOM Refs (updated to match actual markup)
+  ========================================================== */
+  const loginBtn          = document.getElementById("loginBtn");
+  const mobileLoginBtn    = document.getElementById("mobileLoginBtn");
+  const profilePic        = document.getElementById("profilePic");
+  const profileDropdown   = document.getElementById("profileDropdown");
+  const dropdownPic       = document.getElementById("dropdownPic");
+  const dropdownName      = document.getElementById("dropdownName");
+  const dropdownSettingsBtn = document.getElementById("dropdownSettingsBtn");
+  const dropdownLogoutBtn   = document.getElementById("dropdownLogoutBtn");
+
+  const sidebarPic        = document.getElementById("sidebarPic");
+  const sidebarName       = document.getElementById("sidebarName");
+  const sidebarSettingsBtn= document.getElementById("sidebarSettingsBtn");
+  const sidebarLogoutBtn  = document.getElementById("sidebarLogoutBtn");
+
+  const usernameDisplay   = document.getElementById("usernameDisplay");
+  const welcomeSubtext    = document.getElementById("welcomeSubtext");
+  const userWelcome       = document.getElementById("userWelcome");
+
+  const competitorsBody   = document.getElementById("competitorsBody");
+  const addForm           = document.getElementById("addForm");
+  const addMsgEl          = document.getElementById("addMsg");
+  const aiSummaryCard     = document.getElementById("aiSummaryCard");
+  const aiSummaryTitle    = document.getElementById("aiSummaryTitle");
+  const aiSummaryContent  = document.getElementById("aiSummaryContent");
+  const updatesCard       = document.getElementById("updatesCard");
+  const updatesTitle      = document.getElementById("updatesTitle");
+  const updatesList       = document.getElementById("updatesList");
+
+  const hamburger         = document.getElementById('hamburger');
+  const mobileSidebar     = document.getElementById('mobileSidebar');
+
+  /* =========================================================
+     Auth-driven UI toggles
+  ========================================================== */
+  function showAuthedUI() {
+    // desktop
+    loginBtn?.classList.add("hidden");
+    profilePic?.classList.remove("hidden");
+    // mobile
+    mobileLoginBtn?.classList.add("hidden");
+    hamburger?.classList.remove("hidden");
+  }
+  function showLoggedOutUI() {
+    loginBtn?.classList.remove("hidden");
+    profilePic?.classList.add("hidden");
+    mobileLoginBtn?.classList.remove("hidden");
+    hamburger?.classList.add("hidden");
+  }
+
+  /* =========================================================
+     Simple Routing Helpers (change if you use different pages)
+  ========================================================== */
+  function gotoLogin()   { window.location.href = "landing.html"; }
+  function gotoLanding() { window.location.href = "landing.html"; }
+  function gotoSettings(){ window.location.href = "settings.html"; }
+
+  /* =========================================================
+     Logout (single definition)
+  ========================================================== */
+  async function logout() {
+    try {
+      await firebase.auth().signOut();
+      gotoLogin();
+    } catch (err) {
+      console.error("[Logout] error:", err);
+      alert("Failed to log out.");
+    }
+  }
+
+  dropdownSettingsBtn?.addEventListener("click", gotoSettings);
+  sidebarSettingsBtn?.addEventListener("click", gotoSettings);
+  dropdownLogoutBtn?.addEventListener("click", logout);
+  sidebarLogoutBtn?.addEventListener("click", logout);
+  loginBtn?.addEventListener("click", gotoLogin);
+  mobileLoginBtn?.addEventListener("click", gotoLogin);
+
+  /* =========================================================
+     Mobile menu toggle
+  ========================================================== */
+  hamburger?.addEventListener('click', () => {
+    hamburger.classList.toggle('active');
+    mobileSidebar.classList.toggle('hidden');
+    mobileSidebar.classList.toggle('visible');
+  });
+
+  /* =========================================================
+     Profile dropdown toggle
+  ========================================================== */
+  if (profilePic) {
+    profilePic.addEventListener('click', (e) => {
+      e.stopPropagation();
+      profileDropdown.style.display = profileDropdown.style.display === 'block' ? 'none' : 'block';
+    });
+    // Close when clicking outside
+    document.addEventListener('click', () => {
+      profileDropdown.style.display = 'none';
+    });
+  }
+
+  /* =========================================================
+     Auth State
+  ========================================================== */
+  firebase.auth().onAuthStateChanged(async user => {
+    if (!user) {
+      showLoggedOutUI();
+      gotoLanding(); // or gotoLogin()
       return;
     }
-    renderCompetitorsTable(data.competitors || []);
-  } catch (err) {
-    console.error("[Load competitors] error:", err);
-    competitorsBody.innerHTML = `<tr><td colspan="3">Failed to load competitors.</td></tr>`;
-  }
-}
-
-function renderCompetitorsTable(competitors) {
-  competitorsBody.innerHTML = "";
-  if (!competitors.length) {
-    competitorsBody.innerHTML = `<tr><td colspan="3" style="color:var(--text-dim);">No competitors yet.</td></tr>`;
-    return;
-  }
-  competitors.forEach(c => {
-    const tr = document.createElement("tr");
-
-    const tdName = document.createElement("td");
-    tdName.textContent = c.displayName || c.domain;
-
-    const tdDomain = document.createElement("td");
-    tdDomain.textContent = c.domain;
-
-    const tdActions = document.createElement("td");
-    // Scan
-    const btnScan = document.createElement("button");
-    btnScan.className = "action";
-    btnScan.textContent = "Scan";
-    btnScan.addEventListener("click", () => scanCompetitor(c.domain));
-    tdActions.appendChild(btnScan);
-    // AI Summary
-    const btnAISum = document.createElement("button");
-    btnAISum.className = "action";
-    btnAISum.textContent = "AI Summary";
-    btnAISum.addEventListener("click", () => viewAISummary(c.domain));
-    tdActions.appendChild(btnAISum);
-    // View
-    const btnView = document.createElement("button");
-    btnView.className = "action";
-    btnView.textContent = "View";
-    btnView.addEventListener("click", () => viewUpdates(c.domain));
-    tdActions.appendChild(btnView);
-    // Delete
-    const btnDel = document.createElement("button");
-    btnDel.className = "action danger";
-    btnDel.textContent = "Delete";
-    btnDel.addEventListener("click", () => deleteCompetitor(c.domain));
-    tdActions.appendChild(btnDel);
-
-    tr.appendChild(tdName);
-    tr.appendChild(tdDomain);
-    tr.appendChild(tdActions);
-    competitorsBody.appendChild(tr);
+    showAuthedUI();
+    try {
+      await user.getIdToken(true); // refresh
+    } catch (err) {
+      console.error("[Auth] Failed to refresh ID token:", err);
+      showLoggedOutUI();
+      gotoLanding();
+      return;
+    }
+    // render profile + welcome
+    renderUserProfile(user);
+    // load competitor data
+    loadCompetitors();
   });
+
+  /* =========================================================
+     Render User Profile (updated)
+  ========================================================== */
+  function renderUserProfile(user) {
+  const name = user.displayName || (user.email ? user.email.split("@")[0] : "User");
+  const initials = getInitials(name);
+  const fallbackAvatar = makeInitialsAvatar(initials);
+
+  usernameDisplay.textContent = name;
+  welcomeSubtext.classList.add("hidden");
+  userWelcome.classList.remove("hidden");
+  dropdownName.textContent = name;
+  sidebarName.textContent = name;
+
+  const isGoogle = user.providerData.some(p => p.providerId === "google.com");
+  let photo = null;
+
+  if (isGoogle && user.photoURL) {
+    photo = user.photoURL.includes("=s") ? user.photoURL : user.photoURL + "?sz=128";
+  }
+
+  // Default all images to initials avatar first (prevents blank flash)
+  [profilePic, dropdownPic, sidebarPic].forEach(img => {
+    if (img) img.src = fallbackAvatar;
+  });
+
+  if (photo) {
+    // Try upgrading to Google photo; if it fails, the avatar stays
+    [profilePic, dropdownPic, sidebarPic].forEach(img => {
+      if (!img) return;
+      img.onerror = () => { img.src = fallbackAvatar; };
+      img.src = photo; // triggers load; fallback fires if error
+    });
+  }
 }
 
-/* ---------- Scan Competitor ---------- */
-async function scanCompetitor(domain) {
+
+  /* =========================================================
+     Initials Avatar Helpers
+  ========================================================== */
+  function getInitials(name) {
+    if (!name) return "?";
+    const parts = name
+      .trim()
+      .split(/\s+/)
+      .map(p => p.replace(/[^A-Za-z]/g, ''))
+      .filter(Boolean);
+    if (!parts.length) return "?";
+    let first = parts.find(p => p.length >= 2) || parts[0];
+    let last  = parts[parts.length - 1];
+    return (first[0] + last[0]).toUpperCase();
+  }
+
+  function makeInitialsAvatar(initials) {
+    const size = 128;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    const hue = hashString(initials) % 360;
+    ctx.fillStyle = `hsl(${hue}, 70%, 40%)`;
+    ctx.fillRect(0, 0, size, size);
+    ctx.font = "bold 56px sans-serif";
+    ctx.fillStyle = "#fff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(initials, size / 2, size / 2 + 4);
+    return canvas.toDataURL("image/png");
+  }
+
+  function hashString(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) {
+      h = (h << 5) - h + str.charCodeAt(i);
+      h |= 0;
+    }
+    return Math.abs(h);
+  }
+
+  /* =========================================================
+     Auth Headers Helper
+  ========================================================== */
+  async function getAuthHeaders(forceRefresh = false) {
+    const user = firebase.auth().currentUser;
+    if (!user) throw new Error("User not logged in (getAuthHeaders)");
+    const token = await user.getIdToken(forceRefresh);
+    return {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    };
+  }
+
+  /* =========================================================
+     API Base (use same-origin by default)
+  ========================================================== */
+  const API_BASE = (window.location.origin.includes("localhost"))
+    ? "http://localhost:3000/api/competitors"
+    : "/api/competitors";
+
+  /* =========================================================
+     Add Competitor
+  ========================================================== */
+  addForm?.addEventListener("submit", addCompetitor);
+
+  async function addCompetitor(e) {
+    e.preventDefault();
+    const name = document.getElementById("name").value.trim();
+    const url  = document.getElementById("url").value.trim();
+    const rssText = document.getElementById("rss").value.trim();
+    const rssFeeds = rssText ? rssText.split(",").map(s => s.trim()).filter(Boolean) : [];
+
+    addMsgEl.textContent = "Adding...";
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(API_BASE, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ name, url, rssFeeds })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        addMsgEl.textContent = data.message || "Added!";
+        e.target.reset();
+        loadCompetitors();
+      } else {
+        console.error("[Add competitor] server error:", data);
+        addMsgEl.textContent = data.error || "Failed to add competitor.";
+      }
+    } catch (err) {
+      console.error("[Add competitor] error:", err);
+      addMsgEl.textContent = "Network error.";
+    }
+  }
+
+  /* =========================================================
+     Load Competitors
+  ========================================================== */
+  async function loadCompetitors() {
+    competitorsBody.innerHTML = `
+      <tr>
+        <td colspan="3">
+          <div class="loading-shimmer" style="height:1.2em;width:60%;margin:auto;"></div>
+        </td>
+      </tr>`;
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(API_BASE, { headers });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("[Load competitors] server error:", data);
+        competitorsBody.innerHTML = `<tr><td colspan="3" class="text-center text-red-400 py-2">Failed to load competitors.</td></tr>`;
+        return;
+      }
+      renderCompetitorsTable(Array.isArray(data.competitors) ? data.competitors : []);
+    } catch (err) {
+      console.error("[Load competitors] error:", err);
+      competitorsBody.innerHTML = `<tr><td colspan="3" class="text-center text-red-400 py-2">Failed to load competitors.</td></tr>`;
+    }
+  }
+
+  /* =========================================================
+     Render Competitors Table (robust to API shape)
+  ========================================================== */
+  function renderCompetitorsTable(competitors) {
+    competitorsBody.innerHTML = "";
+    if (!competitors.length) {
+      competitorsBody.innerHTML = `<tr><td colspan="3" class="text-center text-gray-400 py-2">No competitors yet.</td></tr>`;
+      return;
+    }
+    competitors.forEach(c => {
+      // try to normalize fields
+      const name   = c.displayName || c.name || extractDomain(c.url || c.domain || "");
+      const domain = c.domain || extractDomain(c.url || "");
+
+      const tr = document.createElement("tr");
+
+      const tdName = document.createElement("td");
+      tdName.textContent = name;
+
+      const tdDomain = document.createElement("td");
+      tdDomain.textContent = domain || "-";
+
+      const tdActions = document.createElement("td");
+
+      const btnScan = document.createElement("button");
+btnScan.className = "action-btn";
+btnScan.textContent = "Scan";
+btnScan.addEventListener("click", (e) => {
+  e.stopPropagation(); // Prevent any parent click handlers
+  scanCompetitor(domain);
+});
+
+      const btnAISum = document.createElement("button");
+      btnAISum.className = "action-btn";
+      btnAISum.textContent = "AI Summary";
+      btnAISum.addEventListener("click", () => viewAISummary(domain));
+
+      const btnView = document.createElement("button");
+      btnView.className = "action-btn";
+      btnView.textContent = "View";
+      btnView.addEventListener("click", () => viewUpdates(domain));
+
+      const btnDel = document.createElement("button");
+      btnDel.className = "action-btn danger";
+      btnDel.textContent = "Delete";
+      btnDel.addEventListener("click", () => deleteCompetitor(domain));
+
+      tdActions.appendChild(btnScan);
+      tdActions.appendChild(btnAISum);
+      tdActions.appendChild(btnView);
+      tdActions.appendChild(btnDel);
+
+      tr.appendChild(tdName);
+      tr.appendChild(tdDomain);
+      tr.appendChild(tdActions);
+      competitorsBody.appendChild(tr);
+    });
+  }
+
+  function extractDomain(url) {
+    if (!url) return "";
+    try {
+      const u = new URL(url.startsWith("http") ? url : "https://" + url);
+      return u.hostname;
+    } catch {
+      return url;
+    }
+  }
+
+  /* =========================================================
+     Scan Competitor
+  ========================================================== */
+  async function scanCompetitor(domain) {
+  if (!domain) return alert("Missing domain.");
+  
+  // Find the clicked button
+  const buttons = document.querySelectorAll(`.action-btn`);
+  const clickedBtn = Array.from(buttons).find(btn => 
+    btn.textContent === "Scan" && 
+    btn.closest('tr')?.querySelector('td:nth-child(2)')?.textContent === domain
+  );
+
   try {
+    // Set loading state
+    if (clickedBtn) {
+      clickedBtn.classList.add('loading');
+      clickedBtn.setAttribute('disabled', 'true');
+    }
+
     const headers = await getAuthHeaders();
-    const res = await fetch(`${API}/${encodeURIComponent(domain)}/scan`, { method:"POST", headers });
-    const data = await res.json();
+    const res = await fetch(`${API_BASE}/${encodeURIComponent(domain)}/scan`, {
+      method: "POST",
+      headers
+    });
+    const data = await res.json().catch(() => ({}));
+    
     alert(`${data.message || 'Scan done'} (Web: ${data.websiteUpdates ?? '?'} , RSS: ${data.rssUpdates ?? '?'})`);
   } catch (err) {
     console.error("[Scan competitor] error:", err);
     alert("Scan failed.");
-  }
-}
-
-/* ---------- AI Summary ---------- */
-async function viewAISummary(domain) {
-  aiSummaryTitle.textContent = `AI Summary – ${domain}`;
-  aiSummaryContent.innerHTML = `<div class="loading-shimmer" style="height:1.2em;width:60%;"></div>`;
-  aiSummaryCard.style.display = "block";
-
-  try {
-    const headers = await getAuthHeaders();
-    const res = await fetch(`${API}/${encodeURIComponent(domain)}/ai-summary`, { headers });
-    const data = await res.json();
-    if (!res.ok) {
-      console.error("[AI summary] server error:", data);
-      aiSummaryContent.textContent = data.error || "Failed to load AI summary.";
-      return;
+  } finally {
+    // Remove loading state
+    if (clickedBtn) {
+      clickedBtn.classList.remove('loading');
+      clickedBtn.removeAttribute('disabled');
     }
-    aiSummaryContent.textContent = data.aiSummary || "No AI summary available.";
-    aiSummaryCard.scrollIntoView({ behavior: "smooth" });
-  } catch (err) {
-    console.error("[AI summary fetch error]:", err);
-    aiSummaryContent.textContent = "Failed to load AI summary.";
   }
 }
-
-/* ---------- Structured Updates ---------- */
-async function viewUpdates(domain) {
-  updatesTitle.textContent = `Updates – ${domain}`;
-  updatesList.innerHTML = `<div class="loading-shimmer" style="height:1.2em;width:60%;"></div>`;
-  updatesCard.style.display = "block";
-
-  try {
-    const headers = await getAuthHeaders();
-    const res = await fetch(`${API}/${encodeURIComponent(domain)}`, { headers });
-    const data = await res.json();
-    if (!res.ok) {
-      console.error("[View updates] server error:", data);
-      updatesList.innerHTML = `<p>Failed to load updates.</p>`;
-      return;
-    }
-    renderUpdatesList(data.report || {});
-    updatesCard.scrollIntoView({ behavior: "smooth" });
-  } catch (err) {
-    console.error("[View updates] error:", err);
-    updatesList.innerHTML = `<p>Failed to load updates.</p>`;
-  }
-}
-
-function renderUpdatesList(report) {
-  const { priceChanges = [], contentUpdates = [], additions = [], removals = [] } = report;
-
-  let html = "";
-
-  // Price changes
-  html += `<h3>Price Changes</h3>`;
-  if (!priceChanges.length) {
-    html += `<p>No price changes.</p>`;
-  } else {
-    priceChanges.forEach(p => {
-      const dirWord = p.direction === "drop" ? "dropped" :
-                      p.direction === "increase" ? "increased" : "changed";
-      html += `<div class="update-item">• ${sanitize(p.itemName)} ${dirWord} from ₹${sanitize(p.oldPrice) ?? "?"} to ₹${sanitize(p.newPrice) ?? "?"} <br><small>${sanitize(p.time)}</small></div>`;
-    });
-  }
-
-  // Content updates
-  html += `<h3>Content Updates</h3>`;
-  if (!contentUpdates.length) {
-    html += `<p>No content changes.</p>`;
-  } else {
-    contentUpdates.forEach(cu => {
-      html += `<div class="update-item"><strong>Changed:</strong><br>From: ${sanitize(cu.oldSnippet) || "-"}<br>To: ${sanitize(cu.newSnippet) || "-"}<br><small>${sanitize(cu.time)}</small></div>`;
-    });
-  }
-
-  // Additions & removals
-  html += `<h3>Additions & Removals</h3>`;
-  if (!additions.length && !removals.length) {
-    html += `<p>No additions or removals.</p>`;
-  } else {
-    additions.forEach(a => {
-      html += `<div class="update-item"><span class="tag">Added</span> ${sanitize(a.text)}<br><small>${sanitize(a.time)}</small></div>`;
-    });
-    removals.forEach(r => {
-      html += `<div class="update-item"><span class="tag">Removed</span> ${sanitize(r.text)}<br><small>${sanitize(r.time)}</small></div>`;
-    });
-  }
-
-  updatesList.innerHTML = html;
-}
-
-/* ---------- Delete Competitor ---------- */
-async function deleteCompetitor(domain) {
-  if (!confirm(`Delete ${domain}?`)) return;
-  try {
-    const headers = await getAuthHeaders();
-    const res = await fetch(`${API}/${encodeURIComponent(domain)}`, { method:"DELETE", headers });
-    if (!res.ok) {
-      const data = await res.json();
-      console.error("[Delete competitor] server error:", data);
-      alert("Delete failed.");
-      return;
-    }
-    loadCompetitors();
-  } catch (err) {
-    console.error("[Delete competitor] error:", err);
-    alert("Delete failed.");
-  }
-}
-
-/* ---------- Sanitization ---------- */
-/* Minimal text sanitization to reduce risk of HTML injection for fields coming from server. */
-function sanitize(val) {
-  if (val === null || val === undefined) return "";
-  return String(val)
+/* ---------- AI Summary Formatting ---------- */
+function escapeHtml(str) {
+  return String(str)
     .replace(/&/g,"&amp;")
     .replace(/</g,"&lt;")
     .replace(/>/g,"&gt;")
     .replace(/"/g,"&quot;")
     .replace(/'/g,"&#039;");
 }
-</script>
+
+/**
+ * Accepts raw AI summary text (may contain *, →, markdown bold, or HTML).
+ * Returns safe HTML with <ul><li> bullets.
+ * We trust <ul>/<li> that come from our backend; otherwise we escape + convert bullets.
+ */
+function formatAISummary(raw) {
+  if (!raw) return "<p>No AI summary available.</p>";
+
+  // If backend already returned our custom HTML, render as-is
+  if (/<div class="ai-summary">/i.test(raw)) return raw;
+
+  const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  let htmlOut = ['<div class="ai-summary"><ul class="main-list">'];
+  let openUL = false;
+
+  function openList() { if (!openUL) { htmlOut.push("<ul>"); openUL = true; } }
+  function closeList() { if (openUL) { htmlOut.push("</ul>"); openUL = false; } }
+
+  lines.forEach(line => {
+    // Detect headings like "Pricing:" or "**Pricing:**"
+    const headingMatch = line.match(/^\*?\*{0,2}(.+?):\*{0,2}\s*$/);
+    if (headingMatch) {
+      closeList();
+      htmlOut.push(`<li><strong>${escapeHtml(headingMatch[1].trim())}:</strong>`);
+      openUL = false;  // reset for sub-list
+      return;
+    }
+
+    // Detect bullet lines (*, -, →, etc.)
+    if (/^([*\-•→►])\s+/.test(line)) {
+      openList();
+      const text = line.replace(/^([*\-•→►])\s+/, "");
+      htmlOut.push(`<li>${escapeHtml(text)}</li>`);
+      return;
+    }
+
+    // Regular text lines
+    openList();
+    htmlOut.push(`<li>${escapeHtml(line)}</li>`);
+  });
+
+  closeList();
+  htmlOut.push("</ul></div>");
+  return htmlOut.join("");
+}
+
+
+  /* =========================================================
+     AI Summary
+  ========================================================== */
+  async function viewAISummary(domain) {
+    aiSummaryTitle.innerHTML = `<i class="fas fa-robot mr-3 text-blue-400"></i>AI Summary – ${sanitize(domain)}`;
+    aiSummaryContent.innerHTML = `<div class="loading-shimmer" style="height:1.2em;width:60%;"></div>`;
+    aiSummaryCard.style.display = "block";
+
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(`${API_BASE}/${encodeURIComponent(domain)}/ai-summary`, { headers });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("[AI summary] server error:", data);
+        aiSummaryContent.textContent = data.error || "Failed to load AI summary.";
+        return;
+      }
+
+      // Format + render
+      const raw = data.aiSummary || "";
+      aiSummaryContent.innerHTML = formatAISummary(raw);
+      aiSummaryCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (err) {
+      console.error("[AI summary fetch error]:", err);
+      aiSummaryContent.textContent = "Failed to load AI summary.";
+    }
+  }
+
+  /* =========================================================
+     Structured Updates
+  ========================================================== */
+  async function viewUpdates(domain) {
+    updatesTitle.innerHTML = `<i class="fas fa-bell mr-3 text-blue-400"></i>Updates – ${sanitize(domain)}`;
+    updatesList.innerHTML = `<div class="loading-shimmer" style="height:1.2em;width:60%;"></div>`;
+    updatesCard.style.display = "block";
+
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(`${API_BASE}/${encodeURIComponent(domain)}`, { headers });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("[View updates] server error:", data);
+        updatesList.innerHTML = `<p>Failed to load updates.</p>`;
+        return;
+      }
+      renderUpdatesList(data.report || {});
+      updatesCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (err) {
+      console.error("[View updates] error:", err);
+      updatesList.innerHTML = `<p>Failed to load updates.</p>`;
+    }
+  }
+
+  function renderUpdatesList(report) {
+    const { priceChanges = [], contentUpdates = [], additions = [], removals = [] } = report;
+    let html = "";
+
+    html += `<h3 class="font-semibold text-blue-300 mb-1">Price Changes</h3>`;
+    if (!priceChanges.length) {
+      html += `<p class="mb-3 text-gray-400 text-sm">No price changes.</p>`;
+    } else {
+      priceChanges.forEach(p => {
+        const dirWord = p.direction === "drop" ? "dropped" :
+                        p.direction === "increase" ? "increased" : "changed";
+        html += `<div class="update-item mb-3">• ${sanitize(p.itemName)} ${dirWord} from ₹${sanitize(p.oldPrice) ?? "?"} to ₹${sanitize(p.newPrice) ?? "?"} <br><small class="text-gray-400">${sanitize(p.time)}</small></div>`;
+      });
+    }
+
+    html += `<h3 class="font-semibold text-blue-300 mb-1 mt-4">Content Updates</h3>`;
+    if (!contentUpdates.length) {
+      html += `<p class="mb-3 text-gray-400 text-sm">No content changes.</p>`;
+    } else {
+      contentUpdates.forEach(cu => {
+        html += `<div class="update-item mb-3"><strong>Changed:</strong><br>From: ${sanitize(cu.oldSnippet) || "-"}<br>To: ${sanitize(cu.newSnippet) || "-"}<br><small class="text-gray-400">${sanitize(cu.time)}</small></div>`;
+      });
+    }
+
+    html += `<h3 class="font-semibold text-blue-300 mb-1 mt-4">Additions &amp; Removals</h3>`;
+    if (!additions.length && !removals.length) {
+      html += `<p class="mb-3 text-gray-400 text-sm">No additions or removals.</p>`;
+    } else {
+      additions.forEach(a => {
+        html += `<div class="update-item mb-2"><span class="tag">Added</span> ${sanitize(a.text)}<br><small class="text-gray-400">${sanitize(a.time)}</small></div>`;
+      });
+      removals.forEach(r => {
+        html += `<div class="update-item mb-2"><span class="tag">Removed</span> ${sanitize(r.text)}<br><small class="text-gray-400">${sanitize(r.time)}</small></div>`;
+      });
+    }
+
+    updatesList.innerHTML = html;
+  }
+
+  /* =========================================================
+     Delete Competitor
+  ========================================================== */
+  async function deleteCompetitor(domain) {
+    if (!domain) return;
+    if (!confirm(`Delete ${domain}?`)) return;
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(`${API_BASE}/${encodeURIComponent(domain)}`, {
+        method: "DELETE",
+        headers
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("[Delete competitor] server error:", data);
+        alert(data.error || "Delete failed.");
+        return;
+      }
+      loadCompetitors();
+    } catch (err) {
+      console.error("[Delete competitor] error:", err);
+      alert("Delete failed.");
+    }
+  }
+
+  /* =========================================================
+     Sanitization
+  ========================================================== */
+  function sanitize(val) {
+    if (val === null || val === undefined) return "";
+    return String(val)
+      .replace(/&/g,"&amp;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;")
+      .replace(/'/g,"&#039;");
+  }
+  </script>
 </body>
 </html>

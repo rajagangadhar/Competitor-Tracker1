@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>About | Competitor Tracker</title>
+  <link rel="shortcut icon" href="./img/logo.png" type="image/png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  
+  <style>
+    @keyframes gradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @keyframes floating {
+      0%,100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-20px) scale(1.05); }
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+    body {
+      background: linear-gradient(-45deg, #0f172a, #1e293b, #334155, #475569);
+      background-size: 400% 400%;
+      animation: gradient 15s ease infinite;
+      min-height: 100vh;
+    }
+    
+    .hamburger div { 
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+      transform-origin: center;
+    }
+    .hamburger.active .line1 { transform: rotate(45deg) translate(5px, 5px); }
+    .hamburger.active .line2 { opacity: 0; }
+    .hamburger.active .line3 { transform: rotate(-45deg) translate(5px, -5px); }
+    
+    #profileDropdown { 
+      display: none; 
+      position: absolute; 
+      right: 1rem; 
+      top: 4rem; 
+      background: rgba(31, 41, 55, 0.95);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+    
+    #mobileSidebar { 
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+      background: rgba(31, 41, 55, 0.98);
+      backdrop-filter: blur(12px);
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    #mobileSidebar.hidden { transform: translateX(-100%); }
+    #mobileSidebar.visible { transform: translateX(0); }
+    
+    .sidebar-link::before {
+      content: '';
+      position: absolute;
+      left: -1rem;
+      top: 0;
+      width: 4px;
+      height: 100%;
+      background-color: transparent;
+      border-radius: 2px;
+      transition: all 0.3s ease;
+    }
+    .sidebar-link.active::before { background-color: #3b82f6; }
+    
+    .nav-link { position: relative; }
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: -2px;
+      height: 2px;
+      width: 0;
+      background: linear-gradient(90deg, #3b82f6, #6366f1);
+      transition: width 0.3s ease;
+    }
+    .nav-link:hover::after, .nav-link.active::after { width: 100%; }
+
+    .card-hover {
+      transition: all 0.3s ease;
+      background: rgba(31, 41, 55, 0.7);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      position: relative;
+      overflow: hidden;
+    }
+    .card-hover:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+    .card-hover::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+      transform: rotate(30deg);
+      transition: all 0.6s ease;
+      opacity: 0;
+    }
+    .card-hover:hover::before { opacity: 1; left: 100%; }
+    
+    .logo-glow { text-shadow: 0 0 12px rgba(59, 130, 246, 0.5); }
+    .btn-glow { box-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
+    .btn-glow:hover { box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
+    
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    .welcome-text {
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      animation: gradient-text 8s ease infinite;
+      background-size: 200% 200%;
+    }
+    
+    /* Custom styles for about page */
+    .tech-card {
+      transition: all 0.3s ease;
+      cursor: default;
+    }
+    .tech-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+    
+    .feature-icon {
+      transition: transform 0.3s ease;
+    }
+    .feature-item:hover .feature-icon {
+      transform: scale(1.1);
+    }
+     ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #3b82f6, #6366f1);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, #2563eb, #4f46e5);
+    }
+    * { scrollbar-width: thin; scrollbar-color: #3b82f6 transparent; }
+
+    @keyframes gradient-text {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    #content-scroll {
+      position: absolute;
+      top: 4rem;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+
+<body class="text-gray-100 min-h-screen flex flex-col">
+  <!-- Floating particles background -->
+  <div id="particles"></div>
+  
+  <!-- Navbar -->
+  <nav class="bg-gray-800/90 backdrop-blur-md w-full fixed top-0 z-50 border-b border-gray-700/50">
+    <div class="max-w-7xl mx-auto px-4 flex justify-between items-center h-16 relative">
+      <h1 class="text-2xl font-bold text-blue-400 logo-glow">
+        <i class="fas fa-chart-line mr-2"></i>Competitor Tracker
+      </h1>
+
+      <!-- Desktop navbar -->
+      <div class="hidden md:flex space-x-6 items-center">
+        <a href="index.html" class="nav-link hover:text-blue-300">Dashboard</a>
+        <a href="about.html" class="nav-link hover:text-blue-300 active">About</a>
+        
+        <button id="loginBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-4 rounded btn-glow transition">
+          Login
+        </button>
+        
+        <img id="profilePic" src="img/user.jpeg" alt="profile" 
+             class="w-8 h-8 rounded-full cursor-pointer hidden border-2 border-blue-400 hover:border-blue-300 transition">
+      </div>
+
+      <!-- Mobile menu -->
+      <div class="md:hidden flex items-center">
+        <button id="mobileLoginBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-4 rounded btn-glow transition">
+          Login
+        </button>
+        <div id="hamburger" class="flex flex-col space-y-1.5 cursor-pointer p-2 hamburger hidden">
+          <div class="w-6 h-0.5 bg-white line1 transition"></div>
+          <div class="w-6 h-0.5 bg-white line2 transition"></div>
+          <div class="w-6 h-0.5 bg-white line3 transition"></div>
+        </div>
+      </div>
+
+      <!-- Profile Dropdown -->
+      <div id="profileDropdown" class="rounded-xl shadow-xl p-4 w-52">
+        <div class="flex flex-col items-center text-center space-y-3">
+          <img id="dropdownPic" src="img/user.jpeg" 
+               class="w-16 h-16 rounded-full border-2 border-blue-400 shadow-md" alt="">
+          <p id="dropdownName" class="text-lg font-semibold mt-2"></p>
+          <button id="dropdownSettingsBtn"
+                  class="w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded transition btn-glow">
+            Settings
+          </button>
+          <button id="dropdownLogoutBtn"
+                  class="w-full bg-red-600 hover:bg-red-700 text-white py-1.5 rounded transition">
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Mobile Sidebar -->
+  <div id="mobileSidebar" class="md:hidden fixed top-16 left-0 w-64 h-[calc(100%-4rem)] hidden flex-col p-4 z-40 overflow-y-auto">
+    <div class="flex flex-col items-center mb-4" id="mobileProfileSection">
+      <img id="sidebarPic" src="img/user.jpeg" 
+           class="w-16 h-16 rounded-full border-2 border-blue-400 mb-3 shadow-md" alt="">
+      <p id="sidebarName" class="text-lg font-semibold"></p>
+    </div>
+    
+    <hr class="border-gray-700/50 mb-4">
+    
+    <nav class="flex flex-col space-y-2">
+      <a href="index.html" class="sidebar-link px-3 py-2 rounded-lg hover:bg-gray-700/50 transition relative flex items-center">
+        <i class="fas fa-tachometer-alt mr-3 text-blue-400"></i>Dashboard
+      </a>
+      <a href="about.html" class="sidebar-link px-3 py-2 rounded-lg hover:bg-gray-700/50 transition relative flex items-center active">
+        <i class="fas fa-info-circle mr-3 text-blue-400"></i>About
+      </a>
+    </nav>
+    
+    <hr class="border-gray-700/50 my-4">
+    
+    <button id="sidebarSettingsBtn" 
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition mb-2 btn-glow">
+      <i class="fas fa-cog mr-2"></i>Settings
+    </button>
+    <button id="sidebarLogoutBtn" 
+            class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg transition">
+      <i class="fas fa-sign-out-alt mr-2"></i>Logout
+    </button>
+  </div>
+
+  <!-- Main Content -->
+  <div id="content-scroll">
+    <main class="pt-8 max-w-7xl mx-auto px-4 pb-8">
+      <!-- About Section -->
+      <div class="card-hover rounded-xl border border-gray-700 mb-8 p-6">
+        <h2 class="text-3xl font-bold mb-6 flex items-center">
+          <i class="fas fa-info-circle mr-3 text-blue-400"></i>About Competitor Tracker
+        </h2>
+        
+        <div class="grid md:grid-cols-2 gap-8">
+          <div>
+            <h3 class="text-xl font-semibold mb-4 text-blue-300">Our Mission</h3>
+            <p class="text-gray-300 mb-6 leading-relaxed">
+              Competitor Tracker helps businesses stay ahead by monitoring competitors' websites, 
+              pricing changes, product updates, and content modifications in real-time. Our platform 
+              provides actionable intelligence to help you make informed strategic decisions.
+            </p>
+            
+            <h3 class="text-xl font-semibold mb-4 text-blue-300">Key Features</h3>
+            <ul class="space-y-3 text-gray-300">
+              <li class="flex items-start feature-item">
+                <i class="fas fa-check-circle text-green-400 mt-1 mr-2 feature-icon"></i>
+                <span>Automated competitor website monitoring with change detection</span>
+              </li>
+              <li class="flex items-start feature-item">
+                <i class="fas fa-check-circle text-green-400 mt-1 mr-2 feature-icon"></i>
+                <span>Price change detection and historical tracking</span>
+              </li>
+              <li class="flex items-start feature-item">
+                <i class="fas fa-check-circle text-green-400 mt-1 mr-2 feature-icon"></i>
+                <span>Content change tracking with before/after comparisons</span>
+              </li>
+              <li class="flex items-start feature-item">
+                <i class="fas fa-check-circle text-green-400 mt-1 mr-2 feature-icon"></i>
+                <span>AI-powered summary reports and trend analysis</span>
+              </li>
+              <li class="flex items-start feature-item">
+                <i class="fas fa-check-circle text-green-400 mt-1 mr-2 feature-icon"></i>
+                <span>Customizable alerts for important changes</span>
+              </li>
+              <li class="flex items-start feature-item">
+                <i class="fas fa-check-circle text-green-400 mt-1 mr-2 feature-icon"></i>
+                <span>Competitor benchmarking and performance metrics</span>
+              </li>
+            </ul>
+          </div>
+          
+          <div>
+            <h3 class="text-xl font-semibold mb-4 text-blue-300">Technology Stack</h3>
+            <div class="grid grid-cols-2 gap-4 mb-6">
+              <div class="tech-card p-4 rounded-lg bg-gray-800/50 border border-gray-700">
+                <i class="fab fa-node-js text-2xl text-green-500 mb-2"></i>
+                <p class="font-medium">Node.js</p>
+                <p class="text-xs text-gray-400">Backend Services</p>
+              </div>
+              <div class="tech-card p-4 rounded-lg bg-gray-800/50 border border-gray-700">
+                <i class="fab fa-fire text-2xl text-orange-500 mb-2"></i>
+                <p class="font-medium">Firebase</p>
+                <p class="text-xs text-gray-400">Authentication & Database</p>
+              </div>
+              <div class="tech-card p-4 rounded-lg bg-gray-800/50 border border-gray-700">
+                <i class="fas fa-brain text-2xl text-purple-500 mb-2"></i>
+                <p class="font-medium">AI Analysis</p>
+                <p class="text-xs text-gray-400">Powered by Gemini AI</p>
+              </div>
+              <div class="tech-card p-4 rounded-lg bg-gray-800/50 border border-gray-700">
+                <i class="fab fa-html5 text-2xl text-red-500 mb-2"></i>
+                <p class="font-medium">Tailwind CSS</p>
+                <p class="text-xs text-gray-400">UI Framework</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </main>
+  </div>
+
+  <script>
+  /* =========================================================
+     Floating particles background
+  ========================================================== */
+  function createParticles() {
+    const container = document.getElementById('particles');
+    const particleCount = window.innerWidth < 768 ? 15 : 30;
+    for (let i = 0; i < particleCount; i++) {
+      const particle = document.createElement('div');
+      particle.classList.add('particle');
+      const size = Math.random() * 5 + 2;
+      const posX = Math.random() * 100;
+      const posY = Math.random() * 100;
+      const delay = Math.random() * 10;
+      const duration = 20 + Math.random() * 20;
+      const opacity = 0.1 + Math.random() * 0.2;
+      particle.style.width = size + 'px';
+      particle.style.height = size + 'px';
+      particle.style.left = posX + 'vw';
+      particle.style.top = posY + 'vh';
+      particle.style.opacity = opacity;
+      particle.style.animation = `floating ${duration}s ease-in-out ${delay}s infinite`;
+      container.appendChild(particle);
+    }
+  }
+  window.addEventListener('load', createParticles);
+
+  /* =========================================================
+     Firebase Init
+  ========================================================== */
+  const firebaseConfig = {
+    apiKey: "AIzaSyDPFYs1WCJ2lgQOAiHm0bFbqlol5p3z75o",
+    authDomain: "hackathon-bb760.firebaseapp.com",
+    projectId: "hackathon-bb760",
+    storageBucket: "hackathon-bb760.appspot.com",
+    messagingSenderId: "761847647380",
+    appId: "1:761847647380:web:1253f7ad05bd7489ceb881"
+  };
+  if (firebase.apps?.length) {
+    firebase.app(); // use existing
+  } else {
+    firebase.initializeApp(firebaseConfig);
+  }
+
+  /* =========================================================
+     Auth State
+  ========================================================== */
+  firebase.auth().onAuthStateChanged(async user => {
+    if (!user) {
+      showLoggedOutUI();
+      return;
+    }
+    showAuthedUI();
+    try {
+      await user.getIdToken(true);
+    } catch (err) {
+      console.error("[Auth] Failed to refresh ID token:", err);
+      showLoggedOutUI();
+      return;
+    }
+    renderUserProfile(user);
+  });
+
+  /* =========================================================
+     Auth-driven UI toggles
+  ========================================================== */
+  function showAuthedUI() {
+    // desktop
+    loginBtn?.classList.add("hidden");
+    profilePic?.classList.remove("hidden");
+    // mobile
+    mobileLoginBtn?.classList.add("hidden");
+    hamburger?.classList.remove("hidden");
+  }
+  function showLoggedOutUI() {
+    loginBtn?.classList.remove("hidden");
+    profilePic?.classList.add("hidden");
+    mobileLoginBtn?.classList.remove("hidden");
+    hamburger?.classList.add("hidden");
+  }
+
+  /* =========================================================
+     Render User Profile
+  ========================================================== */
+  function renderUserProfile(user) {
+    const name = user.displayName || (user.email ? user.email.split("@")[0] : "User");
+    const initials = getInitials(name);
+
+    const isGoogle = user.providerData.some(p => p.providerId === "google.com");
+    let photo = null;
+
+    if (isGoogle && user.photoURL) {
+      photo = user.photoURL.includes("=s") ? user.photoURL : user.photoURL + "?sz=128";
+    }
+
+    if (!photo) {
+      photo = makeInitialsAvatar(initials);
+    }
+
+    if (profilePic)   profilePic.src   = photo;
+    if (dropdownPic)  dropdownPic.src  = photo;
+    if (sidebarPic)   sidebarPic.src   = photo;
+
+    if (dropdownName) dropdownName.textContent = name;
+    if (sidebarName)  sidebarName.textContent  = name;
+  }
+
+  /* =========================================================
+     Initials Avatar Helpers
+  ========================================================== */
+  function getInitials(name) {
+    if (!name) return "?";
+    const parts = name
+      .trim()
+      .split(/\s+/)
+      .map(p => p.replace(/[^A-Za-z]/g, ''))
+      .filter(Boolean);
+    if (!parts.length) return "?";
+    let first = parts.find(p => p.length >= 2) || parts[0];
+    let last  = parts[parts.length - 1];
+    return (first[0] + last[0]).toUpperCase();
+  }
+
+  function makeInitialsAvatar(initials) {
+    const size = 128;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    const hue = hashString(initials) % 360;
+    ctx.fillStyle = `hsl(${hue}, 70%, 40%)`;
+    ctx.fillRect(0, 0, size, size);
+    ctx.font = "bold 56px sans-serif";
+    ctx.fillStyle = "#fff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(initials, size / 2, size / 2 + 4);
+    return canvas.toDataURL("image/png");
+  }
+
+  function hashString(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) {
+      h = (h << 5) - h + str.charCodeAt(i);
+      h |= 0;
+    }
+    return Math.abs(h);
+  }
+
+  /* =========================================================
+     Mobile menu toggle
+  ========================================================== */
+  hamburger?.addEventListener('click', () => {
+    hamburger.classList.toggle('active');
+    mobileSidebar.classList.toggle('hidden');
+    mobileSidebar.classList.toggle('visible');
+  });
+
+  /* =========================================================
+     Profile dropdown toggle
+  ========================================================== */
+  if (profilePic) {
+    profilePic.addEventListener('click', (e) => {
+      e.stopPropagation();
+      profileDropdown.style.display = profileDropdown.style.display === 'block' ? 'none' : 'block';
+    });
+    document.addEventListener('click', () => {
+      profileDropdown.style.display = 'none';
+    });
+  }
+
+  /* =========================================================
+     Navigation
+  ========================================================== */
+  function gotoLogin()   { window.location.href = "landing.html"; }
+  function gotoSettings(){ window.location.href = "settings.html"; }
+  async function logout() {
+    try {
+      await firebase.auth().signOut();
+      window.location.href = "landing.html";
+    } catch (err) {
+      console.error("[Logout] error:", err);
+      alert("Failed to log out.");
+    }
+  }
+
+  dropdownSettingsBtn?.addEventListener("click", gotoSettings);
+  sidebarSettingsBtn?.addEventListener("click", gotoSettings);
+  dropdownLogoutBtn?.addEventListener("click", logout);
+  sidebarLogoutBtn?.addEventListener("click", logout);
+  loginBtn?.addEventListener("click", gotoLogin);
+  mobileLoginBtn?.addEventListener("click", gotoLogin);
+  </script>
+</body>
+</html>

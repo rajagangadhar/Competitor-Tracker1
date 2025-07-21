@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Settings - Competitor Tracker</title>
+  <link rel="shortcut icon" href="./img/logo.png" type="image/png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* Custom scrollbar styles */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #1a202c; /* gray-900 equivalent */
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #3B82F6; /* blue-500 equivalent */
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #2563EB; /* blue-600 equivalent */
+  }
+
+  /* For Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #3B82F6 #1a202c;
+  }
+
+  .profile-initials {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+      font-weight: bold;
+      width: 100%;
+      height: 100%;
+      font-size: 2.5rem;
+    }
+    
+    .profile-container {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 4px solid #3B82F6;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .profile-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    /* Small screens (360px and below) */
+    @media (max-width: 360px) {
+      .profile-initials {
+        font-size: 2rem;
+        font-weight: 800;
+      }
+      
+      .danger-zone-btn {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        font-size: 0.875rem;
+      }
+    }
+    
+    @media (min-width: 361px) and (max-width: 639px) {
+      .profile-initials {
+        font-size: 2.25rem;
+      }
+    }
+    
+    @media (min-width: 640px) {
+      .profile-container {
+        width: 140px;
+        height: 140px;
+      }
+      .profile-initials {
+        font-size: 2.75rem;
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      .settings-container {
+        max-width: 52rem !important;
+        padding: 2rem !important;
+      }
+      .profile-container {
+        width: 160px;
+        height: 160px;
+      }
+      .profile-initials {
+        font-size: 3rem;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
+  <div class="settings-container bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-lg mx-4">
+    <div class="flex justify-between items-center mb-8">
+      <a href="index.html" class="text-blue-400 hover:text-blue-300 transition-colors">
+        <i class="fas fa-arrow-left mr-1"></i> Back to Dashboard
+      </a>
+      <button onclick="logout()" class="text-red-400 hover:text-red-300 transition-colors">
+        <i class="fas fa-sign-out-alt mr-1"></i> Logout
+      </button>
+    </div>
+
+    <h1 class="text-2xl font-bold text-blue-400 mb-6 border-b border-gray-700 pb-3">Account Settings</h1>
+
+    <!-- Profile Section -->
+    <div class="mb-6">
+      <h2 class="text-xl font-semibold mb-4 text-gray-300">Profile Information</h2>
+      
+      <div class="flex flex-col items-center mb-6">
+        <div class="profile-container" class="relative w-16 h-16">
+          <img id="profile-img" src="img/user.jpeg" class="profile-img hidden">
+          <div id="profile-initials" class="profile-initials hidden"></div>
+        </div>
+        <div class="flex items-center mt-3">
+          <div class="relative">
+            <input type="text" id="displayNameInput" 
+                   class="p-2 rounded-lg bg-gray-700 border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition pr-10"
+                   readonly>
+            <button id="editNameBtn" onclick="toggleNameEdit()" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-400">
+              <i class="fas fa-pencil-alt"></i>
+            </button>
+          </div>
+        </div>
+        <span id="userEmail" class="text-sm text-gray-400 mt-1"></span>
+      </div>
+    </div>
+
+    <!-- Security Section -->
+    <div class="mb-6">
+      <h2 class="text-xl font-semibold mb-4 text-gray-300">Security Settings</h2>
+      
+      <div class="space-y-3">
+        <button onclick="changePassword()" 
+                class="w-full bg-green-600 hover:bg-green-700 py-3 rounded-lg font-medium flex items-center justify-center transition">
+          <i class="fas fa-key mr-2"></i> Change Password
+        </button>
+        
+        <button onclick="showResetPasswordModal()" 
+                class="w-full bg-purple-600 hover:bg-purple-700 py-3 rounded-lg font-medium flex items-center justify-center transition">
+          <i class="fas fa-envelope mr-2"></i> Reset Password via Email
+        </button>
+      </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="bg-gray-800 rounded-xl shadow-lg p-4 border border-red-900/50">
+      <h2 class="text-xl font-semibold mb-4 text-red-400"><i class="fas fa-exclamation-triangle mr-2"></i> Danger Zone</h2>
+      
+      <button onclick="showDeleteAccountModal()" 
+              class="w-full bg-red-600 hover:bg-red-700 py-3 rounded-lg font-medium flex items-center justify-center transition danger-zone-btn">
+        <i class="fas fa-trash-alt mr-2"></i> Delete Account Permanently
+      </button>
+      <p class="text-xs text-gray-400 mt-2 text-center">This action cannot be undone. All your data will be permanently deleted.</p>
+    </div>
+  </div>
+
+  <!-- Delete Account Modal -->
+  <div id="deleteAccountModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden px-4">
+    <div class="bg-gray-800 rounded-xl p-6 w-full max-w-sm">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold text-red-400"><i class="fas fa-exclamation-triangle mr-2"></i> Delete Account</h3>
+        <button onclick="closeDeleteAccountModal()" class="text-gray-400 hover:text-white">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <p class="mb-4 text-gray-300">Are you sure you want to delete your account? This action cannot be undone.</p>
+      
+      <p class="mb-4 text-gray-300">For security, please enter your current password to confirm:</p>
+      
+      <input type="password" id="deleteAccountPassword" 
+             class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 mb-4 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition" 
+             placeholder="Current Password">
+      
+      <div class="flex space-x-3">
+        <button onclick="closeDeleteAccountModal()" 
+                class="flex-1 bg-gray-600 hover:bg-gray-700 py-2 rounded-lg font-medium transition">
+          Cancel
+        </button>
+        
+        <button onclick="deleteAccount()" 
+                class="flex-1 bg-red-600 hover:bg-red-700 py-2 rounded-lg font-medium transition">
+          <i class="fas fa-trash-alt mr-2"></i> Delete Account
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reset Password Modal -->
+  <div id="resetPasswordModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden px-4">
+    <div class="bg-gray-800 rounded-xl p-6 w-full max-w-sm">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold"><i class="fas fa-envelope mr-2"></i> Reset Password</h3>
+        <button onclick="closeResetPasswordModal()" class="text-gray-400 hover:text-white">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <p class="mb-4 text-gray-300">We'll send a password reset link to your email:</p>
+      <p class="font-medium text-center mb-6" id="resetEmailDisplay"></p>
+      
+      <div class="flex space-x-3">
+        <button onclick="closeResetPasswordModal()" 
+                class="flex-1 bg-gray-600 hover:bg-gray-700 py-2 rounded-lg font-medium transition">
+          Cancel
+        </button>
+        
+        <button onclick="sendPasswordReset()" 
+                class="flex-1 bg-purple-600 hover:bg-purple-700 py-2 rounded-lg font-medium transition">
+          <i class="fas fa-paper-plane mr-2"></i> Send Link
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Current Password Modal -->
+  <div id="currentPasswordModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden px-4">
+    <div class="bg-gray-800 rounded-xl p-6 w-full max-w-sm">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold"><i class="fas fa-lock mr-2"></i> Verify Identity</h3>
+        <button onclick="closeCurrentPasswordModal()" class="text-gray-400 hover:text-white">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <p class="mb-4 text-gray-300">For security, please enter your current password:</p>
+      
+      <input type="password" id="modalCurrentPassword" 
+             class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 mb-4 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition" 
+             placeholder="Current Password">
+      
+      <div class="flex space-x-3">
+        <button onclick="closeCurrentPasswordModal()" 
+                class="flex-1 bg-gray-600 hover:bg-gray-700 py-2 rounded-lg font-medium transition">
+          Cancel
+        </button>
+        
+        <button onclick="verifyCurrentPassword()" 
+                class="flex-1 bg-blue-600 hover:bg-blue-700 py-2 rounded-lg font-medium transition">
+          <i class="fas fa-check mr-2"></i> Verify
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Password Modal -->
+  <div id="newPasswordModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden px-4">
+    <div class="bg-gray-800 rounded-xl p-6 w-full max-w-sm">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold"><i class="fas fa-key mr-2"></i> Set New Password</h3>
+        <button onclick="closeNewPasswordModal()" class="text-gray-400 hover:text-white">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-300 mb-1">New Password</label>
+        <input type="password" id="modalNewPassword" 
+               class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition" 
+               placeholder="At least 6 characters">
+      </div>
+      
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-300 mb-1">Confirm New Password</label>
+        <input type="password" id="modalConfirmPassword" 
+               class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition" 
+               placeholder="Confirm your password">
+      </div>
+      
+      <div class="flex space-x-3">
+        <button onclick="closeNewPasswordModal()" 
+                class="flex-1 bg-gray-600 hover:bg-gray-700 py-2 rounded-lg font-medium transition">
+          Cancel
+        </button>
+        
+        <button onclick="updatePassword()" 
+                class="flex-1 bg-green-600 hover:bg-green-700 py-2 rounded-lg font-medium transition">
+          <i class="fas fa-save mr-2"></i> Update
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+  apiKey: "AIzaSyDPFYs1WCJ2lgQOAiHm0bFbqlol5p3z75o",
+  authDomain: "hackathon-bb760.firebaseapp.com",
+  projectId: "hackathon-bb760",
+  storageBucket: "hackathon-bb760.appspot.com",
+  messagingSenderId: "761847647380",
+  appId: "1:761847647380:web:1253f7ad05bd7489ceb881"
+};
+    firebase.initializeApp(firebaseConfig);
+
+    let currentUser;
+    let currentPasswordVerified = false;
+    let isEditingName = false;
+
+    firebase.auth().onAuthStateChanged(user => {
+      if (!user) return window.location.href = 'landing.html';
+      
+      currentUser = user;
+      updateProfileDisplay(user);
+      document.getElementById('resetEmailDisplay').textContent = user.email;
+    });
+
+    function updateProfileDisplay(user) {
+  const img = document.getElementById("profile-img");
+  const initials = document.getElementById("profile-initials");
+  const displayNameInput = document.getElementById("displayNameInput");
+  const userEmail = document.getElementById("userEmail");
+
+  // Set display name and email
+  const name = user.displayName || (user.email ? user.email.split("@")[0] : "User");
+  displayNameInput.value = name;
+  userEmail.textContent = user.email;
+
+  const letters = name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+  const colors = ["#6366F1", "#EC4899", "#10B981", "#F59E0B", "#EF4444", "#3B82F6", "#8B5CF6"];
+  const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+  if (user.photoURL) {
+    img.src = user.photoURL;
+
+    // If photo fails to load, fallback to initials avatar
+    img.onerror = function () {
+      img.classList.add("hidden");
+      initials.textContent = letters;
+      initials.style.backgroundColor = randomColor;
+      initials.classList.remove("hidden");
+    };
+
+    img.classList.remove("hidden");
+    initials.classList.add("hidden");
+  } else {
+    // No photo, show initials
+    initials.textContent = letters;
+    initials.style.backgroundColor = randomColor;
+    initials.classList.remove("hidden");
+    img.classList.add("hidden");
+  }
+}
+
+
+    // Name Editing Functions
+    function toggleNameEdit() {
+      const nameInput = document.getElementById("displayNameInput");
+      const editBtn = document.getElementById("editNameBtn");
+      
+      isEditingName = !isEditingName;
+      
+      if (isEditingName) {
+        nameInput.removeAttribute("readonly");
+        nameInput.focus();
+        editBtn.innerHTML = '<i class="fas fa-save"></i>';
+        editBtn.classList.remove("text-gray-400");
+        editBtn.classList.add("text-blue-400");
+      } else {
+        nameInput.setAttribute("readonly", true);
+        editBtn.innerHTML = '<i class="fas fa-pencil-alt"></i>';
+        editBtn.classList.remove("text-blue-400");
+        editBtn.classList.add("text-gray-400");
+        updateDisplayName();
+      }
+    }
+
+    async function updateDisplayName() {
+      const newName = document.getElementById("displayNameInput").value.trim();
+      
+      if (!newName) {
+        showAlert("error", "Name cannot be empty");
+        return;
+      }
+
+      try {
+        await currentUser.updateProfile({ displayName: newName });
+        updateProfileDisplay(currentUser);
+        showAlert("success", "Name updated successfully!");
+      } catch (err) {
+        showAlert("error", "Error updating name: " + err.message);
+      }
+    }
+
+    // Delete Account Functions
+    function showDeleteAccountModal() {
+      document.getElementById('deleteAccountModal').classList.remove('hidden');
+    }
+
+    function closeDeleteAccountModal() {
+      document.getElementById('deleteAccountModal').classList.add('hidden');
+      document.getElementById('deleteAccountPassword').value = "";
+    }
+
+    async function deleteAccount() {
+      const password = document.getElementById('deleteAccountPassword').value;
+      
+      if (!password) {
+        showAlert("error", "Please enter your current password");
+        return;
+      }
+
+      try {
+        // Re-authenticate user
+        const credential = firebase.auth.EmailAuthProvider.credential(
+          currentUser.email, 
+          password
+        );
+        
+        await currentUser.reauthenticateWithCredential(credential);
+        
+        // Delete account
+        await currentUser.delete();
+        showAlert("success", "Account deleted successfully. You will be redirected to the landing page.");
+        setTimeout(() => window.location.href = 'landing.html', 2000);
+      } catch (err) {
+        showAlert("error", "Error deleting account: " + err.message);
+        closeDeleteAccountModal();
+      }
+    }
+
+    // Password Functions
+    function changePassword() {
+      currentPasswordVerified = false;
+      document.getElementById('currentPasswordModal').classList.remove('hidden');
+    }
+
+    function closeCurrentPasswordModal() {
+      document.getElementById('currentPasswordModal').classList.add('hidden');
+      document.getElementById('modalCurrentPassword').value = "";
+    }
+
+    function closeNewPasswordModal() {
+      document.getElementById('newPasswordModal').classList.add('hidden');
+      document.getElementById('modalNewPassword').value = "";
+      document.getElementById('modalConfirmPassword').value = "";
+    }
+
+    async function verifyCurrentPassword() {
+      const currentPassword = document.getElementById('modalCurrentPassword').value;
+      
+      if (!currentPassword) {
+        showAlert("error", "Please enter your current password");
+        return;
+      }
+
+      try {
+        // Re-authenticate user
+        const credential = firebase.auth.EmailAuthProvider.credential(
+          currentUser.email, 
+          currentPassword
+        );
+        
+        await currentUser.reauthenticateWithCredential(credential);
+        
+        currentPasswordVerified = true;
+        closeCurrentPasswordModal();
+        document.getElementById('newPasswordModal').classList.remove('hidden');
+      } catch (err) {
+        showAlert("error", "Error: " + err.message);
+      }
+    }
+
+    async function updatePassword() {
+      const newPassword = document.getElementById('modalNewPassword').value;
+      const confirmPassword = document.getElementById('modalConfirmPassword').value;
+      
+      if (newPassword.length < 6) {
+        showAlert("error", "Password must be at least 6 characters long");
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        showAlert("error", "Passwords don't match");
+        return;
+      }
+
+      try {
+        await currentUser.updatePassword(newPassword);
+        closeNewPasswordModal();
+        showAlert("success", "Password updated successfully!");
+        currentPasswordVerified = false;
+      } catch (err) {
+        showAlert("error", "Error updating password: " + err.message);
+      }
+    }
+
+    // Reset Password Functions
+    function showResetPasswordModal() {
+      document.getElementById('resetPasswordModal').classList.remove('hidden');
+    }
+
+    function closeResetPasswordModal() {
+      document.getElementById('resetPasswordModal').classList.add('hidden');
+    }
+
+    function sendPasswordReset() {
+      firebase.auth().sendPasswordResetEmail(currentUser.email)
+        .then(() => {
+          closeResetPasswordModal();
+          showAlert("success", "Password reset email sent to " + currentUser.email);
+        })
+        .catch(err => showAlert("error", "Error: " + err.message));
+    }
+
+    // Logout Function
+    function logout() {
+      firebase.auth().signOut()
+        .then(() => window.location.href = 'landing.html')
+        .catch(err => showAlert("error", "Error signing out: " + err.message));
+    }
+
+    // Helper function to show alerts
+    function showAlert(type, message) {
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all ${
+        type === 'success' ? 'bg-green-600' : 'bg-red-600'
+      }`;
+      alertDiv.textContent = message;
+      document.body.appendChild(alertDiv);
+      
+      setTimeout(() => {
+        alertDiv.classList.add('opacity-0');
+        setTimeout(() => alertDiv.remove(), 300);
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

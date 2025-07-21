@@ -39,10 +39,19 @@ app.post("/api/scrape", async (req, res) => {
 // Protect all competitors routes with verifyToken
 app.use("/api/competitors", verifyToken, competitorsRouter);
 
-// Default route -> landing page
+/* ------------------- STATIC ROUTES ------------------- */
 app.get("/", (req, res) => {
   res.sendFile(path.join(publicPath, "landing.html"));
 });
+
+app.get("/about", (req, res) => {
+  res.sendFile(path.join(publicPath, "about.html"));
+});
+
+app.get("/contact", (req, res) => {
+  res.sendFile(path.join(publicPath, "contact.html"));
+});
+/* ----------------------------------------------------- */
 
 // Fallback to landing page for unknown routes
 app.get("*", (req, res) => {
