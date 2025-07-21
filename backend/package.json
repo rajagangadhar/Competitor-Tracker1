@@ -4,7 +4,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "node server.js",
+    "dev": "node index.js",
     "scan:once": "node cron/dailyScan.js",
     "scan:loop": "node --watch cron/dailyScan.js",
     "start": "node server.js"
