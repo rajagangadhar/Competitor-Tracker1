@@ -7,7 +7,7 @@
     "dev": "node index.js",
     "scan:once": "node cron/dailyScan.js",
     "scan:loop": "node --watch cron/dailyScan.js",
-    "start": "node server.js"
+    "start": "node index.js"
   },
   "dependencies": {
     "@mozilla/readability": "^0.6.0",
